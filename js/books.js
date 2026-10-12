@@ -146,45 +146,66 @@
     },
   };
 
+  /* ---------- Estimaciones para libros sin páginas o sin duración ---------- */
+
+  const median = (arr) => {
+    const v = arr.filter((n) => n > 0).sort((x, y) => x - y);
+    return v.length ? v[Math.floor(v.length / 2)] : 0;
+  };
+
+  /**
+   * Páginas y minutos «estimados» de cada libro. Los audiolibros no tienen páginas:
+   * se calculan a 2 min por página (unas 30 págs./h); lo que no trae dato usa la mediana
+   * del resto. La lectura en papel o ebook se estima a 40 págs./hora.
+   * Solo sirve para mostrar estadísticas; nunca se guarda.
+   */
+  function estimator(books) {
+    const audio = books.filter((b) => b.format === 'audio');
+    const audioMed = median(audio.map((b) => b.totalMinutes)) || 600;
+    const pagesMed = median(books.filter((b) => b.format !== 'audio').map((b) => b.totalPages)) || 320;
+    const minutes = (b) => (b.format === 'audio' ? b.totalMinutes || audioMed : Math.round(pages(b) * 1.5));
+    const pages = (b) => (b.totalPages > 0 ? b.totalPages : b.format === 'audio' ? Math.round((b.totalMinutes || audioMed) / 2) : pagesMed);
+    return { pages, minutes };
+  }
+
   /**
    * Libros importados (Bookmory, Goodreads…) que ya estaban terminados antes de usar
    * LoreKeeper no traen sesiones, solo fechas y duración. Para que cuenten en las
-   * estadísticas se reparte su duración (audio) o sus páginas entre los últimos días
-   * de lectura (hasta 60). Son sesiones «virtuales»: solo se usan para mostrar
-   * estadísticas, nunca se guardan ni dan EXP, logros ni racha.
+   * estadísticas se reparte su duración y sus páginas (estimadas si faltan) entre los
+   * últimos días de lectura (hasta 60). Son sesiones «virtuales»: solo se usan para
+   * mostrar estadísticas, nunca se guardan ni dan EXP, logros ni racha.
    */
   function virtualSessions(books, sessions) {
     const u = LK.util;
     const real = new Set(sessions.map((s) => s.bookId));
+    const est = estimator(books);
     const out = [];
     for (const b of books) {
       if (!b.imported || b.status !== 'completed' || !b.dateCompleted || real.has(b.id)) continue;
       const audio = b.format === 'audio';
-      const total = audio ? b.totalMinutes || 0 : b.totalPages || 0;
-      if (!total) continue;
+      const totalPages = est.pages(b);
+      const totalMin = est.minutes(b);
       let from = b.dateStarted || b.dateCompleted;
       if (from > b.dateCompleted) from = b.dateCompleted;
       const span = Math.min(60, u.daysBetween(from, b.dateCompleted) + 1);
       const end = u.parseISO(b.dateCompleted);
-      const base = Math.floor(total / span);
-      let extra = total - base * span;
+      const split = (total) => {
+        const base = Math.floor(total / span);
+        const extra = total - base * span;
+        return (i) => base + (span - 1 - i < extra ? 1 : 0); // i = días antes de la fecha de fin
+      };
+      const pagesAt = split(totalPages);
+      const minAt = split(totalMin);
       for (let i = span - 1; i >= 0; i--) {
         const d = new Date(end.getFullYear(), end.getMonth(), end.getDate() - i);
-        const n = base + (extra-- > 0 ? 1 : 0);
-        if (!n) continue;
-        out.push({
-          id: `v_${b.id}_${i}`,
-          bookId: b.id,
-          date: u.isoDate(d),
-          mode: audio ? 'audio' : 'pages',
-          durationMinutes: audio ? n : 0,
-          pagesRead: audio ? 0 : n,
-          virtual: true,
-        });
+        const pg = pagesAt(i);
+        const mn = minAt(i);
+        if (!pg && !mn) continue;
+        out.push({ id: `v_${b.id}_${i}`, bookId: b.id, date: u.isoDate(d), mode: audio ? 'audio' : 'pages', durationMinutes: mn, pagesRead: pg, virtual: true });
       }
     }
     return out;
   }
 
-  LK.books = { virtualSessions, STATUSES, FORMATS, FORMAT_ICONS, statusLabel, isAudio, listenedMap, progress, loan, seriesGroups, tagCounts, splitList, isbn };
+  LK.books = { virtualSessions, estimator, STATUSES, FORMATS, FORMAT_ICONS, statusLabel, isAudio, listenedMap, progress, loan, seriesGroups, tagCounts, splitList, isbn };
 })(window.LK);

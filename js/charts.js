@@ -180,5 +180,47 @@
     return `<div class="chart-scroll"><svg class="chart" viewBox="0 0 ${W} ${H}" style="min-width:520px" role="img" aria-label="${metric === 'minutes' ? 'Minutos' : 'Páginas'} por mes">${ticks}${bars}</svg></div>`;
   }
 
-  LK.charts = { radar, heatmap, monthlyBars, pagesByDay };
+  /* ---------------- Rosco (gráfico de anillo) ---------------- */
+
+  /**
+   * Anillo dividido en porciones con su leyenda.
+   * rows: [{ label, value }] (ya ordenadas); se muestran las `max` mayores y el resto como «Otros».
+   * center: { big, small } texto en el centro.
+   */
+  function donut(rows, { center = {}, max = 6, unit = '' } = {}) {
+    const clean = rows.filter((r) => r.value > 0);
+    const total = clean.reduce((a, r) => a + r.value, 0);
+    if (!total) return '<p class="muted small">Todavía no hay datos para este gráfico.</p>';
+    let shown = clean.slice(0, max);
+    const rest = clean.slice(max);
+    if (rest.length) shown.push({ label: 'Otros', value: rest.reduce((a, r) => a + r.value, 0), rest: true });
+    const R = 46;
+    const C = 2 * Math.PI * R;
+    const GAP = shown.length > 1 ? 2 : 0; // hueco entre porciones
+    let offset = 0;
+    const segs = shown
+      .map((r, i) => {
+        const len = (r.value / total) * C;
+        const dash = Math.max(0.5, len - GAP);
+        const html = `<circle class="donut-seg ${r.rest ? 'd-rest' : r.none ? 'd-none' : `d-c${i % 7}`}" cx="60" cy="60" r="${R}" fill="none" stroke-width="20" stroke-dasharray="${dash} ${C - dash}" stroke-dashoffset="${-offset}" transform="rotate(-90 60 60)"><title>${u.esc(r.label)}: ${u.fmtNum(r.value)}${unit ? ' ' + unit : ''} (${Math.round((r.value / total) * 100)} %)</title></circle>`;
+        offset += len;
+        return html;
+      })
+      .join('');
+    const legend = shown
+      .map((r, i) => `<li><i class="donut-dot ${r.rest ? 'd-rest' : r.none ? 'd-none' : `d-c${i % 7}`}"></i><span class="donut-name">${u.esc(r.label)}</span><span class="donut-val">${u.fmtNum(r.value)}<small>${Math.round((r.value / total) * 100)} %</small></span></li>`)
+      .join('');
+    return `
+      <div class="donut">
+        <svg viewBox="0 0 120 120" role="img" aria-label="${u.esc(center.small || 'Gráfico')}: ${shown.map((r) => `${r.label} ${Math.round((r.value / total) * 100)} %`).join(', ')}">
+          <circle cx="60" cy="60" r="${R}" fill="none" stroke-width="20" class="donut-track"/>
+          <g class="donut-ring">${segs}</g>
+          <text x="60" y="${center.small ? 58 : 64}" text-anchor="middle" class="donut-big">${u.esc(center.big ?? u.fmtNum(total))}</text>
+          ${center.small ? `<text x="60" y="74" text-anchor="middle" class="donut-small">${u.esc(center.small)}</text>` : ''}
+        </svg>
+        <ul class="donut-legend">${legend}</ul>
+      </div>`;
+  }
+
+  LK.charts = { radar, heatmap, monthlyBars, pagesByDay, donut };
 })(window.LK);

@@ -4,7 +4,7 @@
    Rutas:
      #/biblioteca[/estado|sagas|prestados|etiqueta/<tag>]
      #/buscar[/consulta]   #/escanear   #/importar
-     #/libro/<id>   #/estadisticas   #/logros   #/resumen/<año>
+     #/libro/<id>   #/estadisticas   #/graficos[/año/books|pages]   #/logros   #/resumen/<año>
      #/ajustes   #/empezar   #/enlazar/<url>/<código>
    Cada vista devuelve { html, mount(root) }.
    ========================================================== */
@@ -18,7 +18,7 @@
   let lastRoute = '';
 
   // En qué pestaña de la barra inferior se ilumina cada pantalla
-  const TAB_OF = { libro: 'biblioteca', importar: 'buscar', escanear: 'buscar', logros: 'estadisticas', resumen: 'estadisticas', empezar: 'biblioteca', enlazar: 'ajustes' };
+  const TAB_OF = { libro: 'biblioteca', importar: 'buscar', escanear: 'buscar', logros: 'estadisticas', resumen: 'estadisticas', graficos: 'estadisticas', empezar: 'biblioteca', enlazar: 'ajustes' };
 
   /** Progreso calculado del lector (nivel, EXP, atributos). */
   async function progress() {
@@ -102,7 +102,31 @@
     } catch {}
   }
 
-  LK.app = { progress, refreshPlayer, refresh, render };
+  /**
+   * Resumen anual automático: el 1 de enero (hora local) se abre «Tu año en libros» del año
+   * que acaba de terminar, una sola vez. Solo salta ese día: si la app no se abre el 1 de
+   * enero, no aparece después (se puede ver siempre desde Estadísticas).
+   * `now` se puede pasar para probarlo.
+   */
+  async function checkYearRecap(now = new Date()) {
+    if (now.getMonth() !== 0 || now.getDate() !== 1) return false;
+    const KEY = 'lk-recap-shown';
+    const thisYear = String(now.getFullYear());
+    try {
+      if (localStorage.getItem(KEY) === thisYear) return false;
+    } catch {}
+    if (document.querySelector('.timer-overlay, dialog[open]')) return false; // no interrumpir una sesión; se reintenta
+    const [books, sessions, profile] = await Promise.all([LK.db.getBooks(), LK.db.getSessions(), LK.db.getProfile()]);
+    const prev = now.getFullYear() - 1;
+    if (LK.summary.compute(prev, books, sessions, profile).empty) return false;
+    try {
+      localStorage.setItem(KEY, thisYear);
+    } catch {}
+    location.hash = `#/resumen/${prev}/nuevo`;
+    return true;
+  }
+
+  LK.app = { progress, refreshPlayer, refresh, render, checkYearRecap };
 
   /* ---------------- Mensajes del Service Worker (botones del aviso) ---------------- */
 
@@ -147,6 +171,11 @@
     handleLaunchAction();
     updateBadge();
     LK.ach.check().catch(() => {});
+
+    // Cada minuto (y al volver a la app) se mira si ya es 1 de enero
+    checkYearRecap().catch(() => {});
+    setInterval(() => checkYearRecap().catch(() => {}), 30000);
+    document.addEventListener('visibilitychange', () => document.visibilityState === 'visible' && checkYearRecap().catch(() => {}));
 
     if (!LK.prefs.get('onboarded') && (await LK.db.isEmpty())) LK.onboarding.show();
     else if (!LK.prefs.get('onboarded')) LK.prefs.set({ onboarded: true });

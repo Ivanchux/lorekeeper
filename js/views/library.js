@@ -194,6 +194,8 @@
 
   /* ---------- Vista ---------- */
 
+  const PAGE = 30; // libros que se pintan de golpe: con cientos, los 3D pesan
+
   LK.views.biblioteca = async (filterParam, extra) => {
     const [books, sessions, profile] = await Promise.all([LK.db.getBooks(), LK.db.getSessions(), LK.db.getProfile()]);
     if (!books.length) return { html: welcome(), mount: (root) => LK.book3d.spin(root.querySelector('.b3d-scene')) };
@@ -247,7 +249,8 @@
     else {
       const label = special === 'prestados' ? 'Prestados' : special === 'etiqueta' ? `#${extra}` : SHELVES.find(([id]) => id === filter)[1];
       body = list.length
-        ? `<div class="shelf-wrap"><div class="shelf">${list.map((b) => LK.ui.shelfItem(b, covers[b.id], listened[b.id])).join('')}</div></div>`
+        ? `<div class="shelf-wrap"><div class="shelf">${list.slice(0, PAGE).map((b) => LK.ui.shelfItem(b, covers[b.id], listened[b.id])).join('')}</div></div>
+           ${list.length > PAGE ? `<button class="btn btn-block" id="shelf-more">Mostrar más libros (${list.length - PAGE})</button>` : ''}`
         : featured
           ? ''
           : `<div class="empty card">No hay libros en «${u.esc(label)}».</div>`;
@@ -298,10 +301,38 @@
         root.querySelector('#btn-random')?.addEventListener('click', () => randomPick(books, covers));
 
         // Filtro instantáneo
+        // Se pintan por tandas; al buscar se filtra entre todos los de la estantería
         const q = root.querySelector('#lib-q');
+        const shelf = root.querySelector('.shelf');
+        const moreBtn = root.querySelector('#shelf-more');
+        const item = (b) => LK.ui.shelfItem(b, covers[b.id], listened[b.id]);
+        const hayOf = (b) => u.norm([b.title, b.author, b.series, ...(b.tags || [])].join(' '));
+        let shown = Math.min(PAGE, list.length);
+        const updateMore = (searching) => {
+          if (!moreBtn) return;
+          moreBtn.hidden = searching || shown >= list.length;
+          moreBtn.textContent = `Mostrar más libros (${list.length - shown})`;
+        };
+        moreBtn?.addEventListener('click', () => {
+          const next = list.slice(shown, shown + PAGE);
+          shelf.insertAdjacentHTML('beforeend', next.map(item).join(''));
+          shown += next.length;
+          updateMore(false);
+        });
+        let searching = false;
         q.addEventListener('input', () => {
           const needle = u.norm(q.value);
-          root.querySelectorAll('.shelf-item').forEach((it) => (it.hidden = !!needle && !it.dataset.hay.includes(needle)));
+          if (!shelf) return;
+          if (needle) {
+            searching = true;
+            const hits = list.filter((b) => hayOf(b).includes(needle));
+            shelf.innerHTML = hits.slice(0, 60).map(item).join('') || '<p class="muted" style="grid-column:1/-1;text-align:center">Ningún libro coincide.</p>';
+            updateMore(true);
+          } else if (searching) {
+            searching = false;
+            shelf.innerHTML = list.slice(0, shown).map(item).join('');
+            updateMore(false);
+          }
         });
 
         // Avisos

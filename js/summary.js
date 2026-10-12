@@ -19,17 +19,19 @@
     return [...set].filter(Boolean).sort((a, b) => b - a);
   }
 
-  function compute(year, books, sessions, profile) {
+  function compute(year, books, realSessions, profile) {
     const y = String(year);
+    const sessions = realSessions.concat(LK.books.virtualSessions(books, realSessions)); // incluye lo importado
     const inYear = sessions.filter((s) => String(s.date || '').startsWith(y));
+    const realInYear = realSessions.filter((s) => String(s.date || '').startsWith(y));
     const finishedBooks = books.filter((b) => b.status === 'completed' && String(b.dateCompleted || '').startsWith(y));
 
     const pages = inYear.reduce((a, s) => a + (s.pagesRead || 0), 0);
     const minutes = inYear.reduce((a, s) => a + (s.durationMinutes || 0), 0);
-    const days = new Set(inYear.filter((s) => (s.pagesRead || 0) > 0 || (s.durationMinutes || 0) > 0).map((s) => s.date));
+    const days = new Set(realInYear.filter((s) => (s.pagesRead || 0) > 0 || (s.durationMinutes || 0) > 0).map((s) => s.date));
     const byId = new Map(books.map((b) => [b.id, b]));
     const audioMinutes = inYear.filter((s) => LK.audio.isAudioSession(s, byId)).reduce((a, s) => a + (s.durationMinutes || 0), 0);
-    const paged = inYear.filter((s) => s.durationMinutes > 0 && s.pagesRead > 0);
+    const paged = realInYear.filter((s) => s.durationMinutes > 0 && s.pagesRead > 0);
     const pagedMinutes = paged.reduce((a, s) => a + s.durationMinutes, 0);
     const pagedPages = paged.reduce((a, s) => a + s.pagesRead, 0);
 
@@ -70,7 +72,7 @@
       minutes,
       hours: minutes / 60,
       days: days.size,
-      bestStreak: LK.ach.longestStreak(inYear),
+      bestStreak: LK.ach.longestStreak(realInYear),
       pagesByMonth,
       finishedByMonth,
       bestMonth: bestIdx >= 0 ? { idx: bestIdx, label: MONTHS[bestIdx], pages: pagesByMonth[bestIdx] } : null,
