@@ -19,12 +19,15 @@
     const year = new Date().getFullYear();
     const weeks = window.innerWidth >= 900 ? 44 : 26; // más semanas en pantallas anchas
     const byId = new Map(books.map((b) => [b.id, b]));
-    const audioSessions = sessions.filter((s) => LK.audio.isAudioSession(s, byId));
+    // Lo importado cuenta en totales y gráficas (repartido entre sus fechas); racha, ritmo y EXP usan solo sesiones reales
+    const virtual = LK.books.virtualSessions(books, sessions);
+    const all = sessions.concat(virtual);
+    const audioSessions = all.filter((s) => LK.audio.isAudioSession(s, byId));
     const audioMinutes = audioSessions.reduce((a, s) => a + (s.durationMinutes || 0), 0);
 
     const completedThisYear = books.filter((b) => b.status === 'completed' && String(b.dateCompleted || '').startsWith(String(year))).length;
-    const totalPages = sessions.reduce((a, s) => a + (s.pagesRead || 0), 0);
-    const totalMinutes = sessions.reduce((a, s) => a + (s.durationMinutes || 0), 0);
+    const totalPages = all.reduce((a, s) => a + (s.pagesRead || 0), 0);
+    const totalMinutes = all.reduce((a, s) => a + (s.durationMinutes || 0), 0);
     // Quien escucha más de lo que lee ve el calendario en minutos, salvo que haya elegido otra cosa
     const pref = LK.prefs.get('metric');
     const metric = pref === 'pages' || pref === 'minutes' ? pref : audioMinutes > totalMinutes / 2 ? 'minutes' : 'pages';
@@ -66,9 +69,50 @@
       .filter((x) => x[2]);
     const rated = finished.filter((b) => b.rating);
     const avg = rated.length ? (rated.reduce((a, b) => a + b.rating, 0) / rated.length).toFixed(1).replace('.', ',') : null;
+    const finishedCount = finished.length;
+
+    // Por año, autores y valoraciones
+    const byYear = new Map();
+    finished.forEach((b) => {
+      const y = String(b.dateCompleted || '').slice(0, 4);
+      if (y) byYear.set(y, (byYear.get(y) || 0) + 1);
+    });
+    const yearRows = [...byYear.entries()].sort((a, b) => b[0].localeCompare(a[0]));
+    const authorMap = new Map();
+    finished.forEach((b) => {
+      const name = String(b.author || '').split(/[,;]/)[0].trim();
+      if (!name || /desconocido/i.test(name)) return;
+      const e = authorMap.get(name) || { n: 0, r: 0, rn: 0 };
+      e.n++;
+      if (b.rating) (e.r += b.rating), e.rn++;
+      authorMap.set(name, e);
+    });
+    const authorRows = [...authorMap.entries()].sort((a, b) => b[1].n - a[1].n || b[1].r - a[1].r).slice(0, 6);
+    const ratingRows = [5, 4, 3, 2, 1].map((n) => [n, rated.filter((b) => b.rating === n).length]);
+    const topTags = LK.books.tagCounts(finished).slice(0, 10);
+    const rankBars = (rows, fmt) => {
+      const max = Math.max(1, ...rows.map((r) => r[1]));
+      return `<ul class="rank-list">${rows.map(([label, n, extra]) => `<li><span class="rank-label">${fmt ? fmt(label) : u.esc(label)}</span><div class="progress"><span style="width:${Math.round((n / max) * 100)}%"></span></div><span class="num">${n}${extra ? ` <small class="muted">${extra}</small>` : ''}</span></li>`).join('')}</ul>`;
+    };
+    const importedNote = virtual.length ? '<p class="muted small" style="text-align:center">Los libros importados cuentan en el calendario y en los totales, repartidos entre sus fechas de inicio y fin.</p>' : '';
+
     const ach = await LK.ach.compute({ books, sessions, quotes, profile });
     const unlocked = ach.filter((a) => a.done && (LK.prefs.get('rpg') || !a.rpg));
     const visibleTotal = ach.filter((a) => LK.prefs.get('rpg') || !a.rpg).length;
+
+    const tileList = [
+      tile(completedThisYear, `Libros leídos en ${year}`),
+      finishedCount > completedThisYear ? tile(u.fmtNum(finishedCount), 'Libros leídos en total') : '',
+      totalPages || !audioMinutes ? tile((virtual.length ? '≈ ' : '') + u.fmtNum(totalPages), 'Páginas leídas') : '',
+      totalMinutes - audioMinutes > 0 || !audioMinutes ? tile((virtual.length ? '≈ ' : '') + u.fmtDuration(totalMinutes - audioMinutes), 'Tiempo leyendo') : '',
+      audioMinutes ? tile(u.fmtDuration(audioMinutes), '🎧 Tiempo escuchando') : '',
+      tile(`${streak} ${streak === 1 ? 'día' : 'días'}`, 'Racha actual'),
+      pace ? tile(`${pace}`, 'Páginas por hora') : '',
+      tile(avg ? `${avg} ★` : '—', 'Valoración media'),
+    ].filter(Boolean);
+    // El acceso a los gráficos ocupa el hueco que deja la última fila; si no hay hueco, ocupa la fila entera
+    const graphTile = `<a class="card tile tile-link" href="#/graficos" ${tileList.length % 2 === 0 ? 'style="grid-column:1/-1"' : ''}><div class="tile-value">🍩</div><div class="tile-label">Gráficos por año, autor, género…</div></a>`;
+    const tilesHtml = tileList.join('') + graphTile;
 
     const html = `
       <div class="page-head"><h1>Estadísticas</h1></div>
@@ -92,15 +136,7 @@
           </div>
         </section>
 
-        <div class="tiles">
-          ${tile(completedThisYear, `Libros leídos en ${year}`)}
-          ${totalPages || !audioMinutes ? tile(u.fmtNum(totalPages), 'Páginas leídas') : ''}
-          ${totalMinutes - audioMinutes > 0 || !audioMinutes ? tile(u.fmtDuration(totalMinutes - audioMinutes), 'Tiempo leyendo') : ''}
-          ${audioMinutes ? tile(u.fmtDuration(audioMinutes), '🎧 Tiempo escuchando') : ''}
-          ${tile(`${streak} ${streak === 1 ? 'día' : 'días'}`, 'Racha actual')}
-          ${pace ? tile(`${pace}`, 'Páginas por hora') : ''}
-          ${tile(avg ? `${avg} ★` : '—', 'Valoración media')}
-        </div>
+        <div class="tiles">${tilesHtml}</div>
 
         <div class="grid-2">
           <section class="card">
@@ -131,13 +167,29 @@
               <button type="button" data-metric="minutes" aria-pressed="${metric === 'minutes'}">Minutos</button>
             </span>
           </div>
-          ${LK.charts.heatmap(sessions, weeks, metric)}
+          ${LK.charts.heatmap(all, weeks, metric)}
         </section>
 
         <section class="card">
           <div class="card-head"><h2>${metric === 'minutes' ? 'Minutos' : 'Páginas'} por mes</h2><span class="muted small">Últimos 12 meses</span></div>
-          ${LK.charts.monthlyBars(sessions, 12, metric)}
+          ${LK.charts.monthlyBars(all, 12, metric)}
         </section>
+
+        ${yearRows.length > 1
+          ? `<section class="card"><div class="card-head"><h2>Libros por año</h2></div>${rankBars(yearRows)}</section>`
+          : ''}
+
+        ${authorRows.length && authorRows[0][1].n > 1
+          ? `<section class="card"><div class="card-head"><h2>Autores que más lees</h2></div>${rankBars(authorRows.map(([n, e]) => [n, e.n, e.rn ? `${(e.r / e.rn).toFixed(1).replace('.', ',')} ★` : '']))}</section>`
+          : ''}
+
+        ${rated.length > 4
+          ? `<section class="card"><div class="card-head"><h2>Tus valoraciones</h2><span class="muted small">${avg} ★ de media</span></div>${rankBars(ratingRows, (n) => '★'.repeat(n))}</section>`
+          : ''}
+
+        ${topTags.length
+          ? `<section class="card"><div class="card-head"><h2>Lo que más lees</h2></div><div class="chips">${topTags.map((t) => `<a class="chip chip-lg" href="#/biblioteca/etiqueta/${encodeURIComponent(t.tag)}">#${u.esc(t.tag)} <strong>${t.count}</strong></a>`).join('')}</div></section>`
+          : ''}
 
         ${fmtCounts.length
           ? `<section class="card">
@@ -146,7 +198,8 @@
             </section>`
           : ''}
 
-        ${sessions.length ? '' : '<p class="muted small" style="text-align:center">Las gráficas se llenan a medida que registras sesiones de lectura.</p>'}
+        ${importedNote}
+        ${all.length ? '' : '<p class="muted small" style="text-align:center">Las gráficas se llenan a medida que registras sesiones de lectura.</p>'}
       </div>`;
 
     return {

@@ -146,5 +146,45 @@
     },
   };
 
-  LK.books = { STATUSES, FORMATS, FORMAT_ICONS, statusLabel, isAudio, listenedMap, progress, loan, seriesGroups, tagCounts, splitList, isbn };
+  /**
+   * Libros importados (Bookmory, Goodreads…) que ya estaban terminados antes de usar
+   * LoreKeeper no traen sesiones, solo fechas y duración. Para que cuenten en las
+   * estadísticas se reparte su duración (audio) o sus páginas entre los últimos días
+   * de lectura (hasta 60). Son sesiones «virtuales»: solo se usan para mostrar
+   * estadísticas, nunca se guardan ni dan EXP, logros ni racha.
+   */
+  function virtualSessions(books, sessions) {
+    const u = LK.util;
+    const real = new Set(sessions.map((s) => s.bookId));
+    const out = [];
+    for (const b of books) {
+      if (!b.imported || b.status !== 'completed' || !b.dateCompleted || real.has(b.id)) continue;
+      const audio = b.format === 'audio';
+      const total = audio ? b.totalMinutes || 0 : b.totalPages || 0;
+      if (!total) continue;
+      let from = b.dateStarted || b.dateCompleted;
+      if (from > b.dateCompleted) from = b.dateCompleted;
+      const span = Math.min(60, u.daysBetween(from, b.dateCompleted) + 1);
+      const end = u.parseISO(b.dateCompleted);
+      const base = Math.floor(total / span);
+      let extra = total - base * span;
+      for (let i = span - 1; i >= 0; i--) {
+        const d = new Date(end.getFullYear(), end.getMonth(), end.getDate() - i);
+        const n = base + (extra-- > 0 ? 1 : 0);
+        if (!n) continue;
+        out.push({
+          id: `v_${b.id}_${i}`,
+          bookId: b.id,
+          date: u.isoDate(d),
+          mode: audio ? 'audio' : 'pages',
+          durationMinutes: audio ? n : 0,
+          pagesRead: audio ? 0 : n,
+          virtual: true,
+        });
+      }
+    }
+    return out;
+  }
+
+  LK.books = { virtualSessions, STATUSES, FORMATS, FORMAT_ICONS, statusLabel, isAudio, listenedMap, progress, loan, seriesGroups, tagCounts, splitList, isbn };
 })(window.LK);

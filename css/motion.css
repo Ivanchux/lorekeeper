@@ -176,3 +176,7 @@ html[data-motion="off"] *::after {
   animation: none !important;
   transition: none !important;
 }
+
+/* Rosco: el anillo se abre al aparecer */
+html:not([data-motion="off"]) #view.entering .donut-ring { transform-origin: 60px 60px; animation: lk-donut-in 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+@keyframes lk-donut-in { from { transform: rotate(-120deg) scale(0.8); opacity: 0; } to { transform: none; opacity: 1; } }

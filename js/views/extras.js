@@ -43,7 +43,7 @@
 
   const bar = (value, max) => `<span class="mbar"><i style="height:${max ? Math.max(value ? 6 : 0, Math.round((value / max) * 100)) : 0}%"></i></span>`;
 
-  LK.views.resumen = async (yearParam) => {
+  LK.views.resumen = async (yearParam, extra) => {
     const [books, sessions, profile] = await Promise.all([LK.db.getBooks(), LK.db.getSessions(), LK.db.getProfile()]);
     const years = LK.summary.years(books, sessions);
     const year = Number(yearParam) || years[0] || new Date().getFullYear();
@@ -78,6 +78,7 @@
       html: `
         <a class="btn btn-ghost btn-sm" href="#/estadisticas" style="margin-bottom:.75rem">← Estadísticas</a>
         <div class="page-head"><h1>Tu año en libros</h1></div>
+        ${extra === 'nuevo' ? `<div class="card banner-ok" style="margin-bottom:1rem"><strong>🎆 ¡Feliz año nuevo!</strong><p class="small" style="margin:.25rem 0 0">Este es el resumen de tu ${year}. Aparece solo el 1 de enero; después lo tienes siempre en Estadísticas.</p></div>` : ''}
         <nav class="segmented" aria-label="Año">${yearTabs}</nav>
 
         <div class="stack" style="margin-top:1.25rem">
@@ -111,6 +112,8 @@
                 .join('')}
             </div>
           </section>
+
+          ${LK.rosco.cards(sm.books, { by: ['author', 'genre', 'publisher'] })}
 
           ${facts.length
             ? `<section class="card"><ul class="list facts">${facts.map(([i, t, v]) => `<li><span aria-hidden="true">${i}</span><div><div class="muted small">${t}</div><strong>${v}</strong></div></li>`).join('')}</ul></section>`

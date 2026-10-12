@@ -255,3 +255,29 @@ dialog.modal.modal-wide { width: min(560px, calc(100% - 1.5rem)); }
 .rank-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 .rank-list .num { font-variant-numeric: tabular-nums; font-weight: 700; text-align: right; white-space: nowrap; }
 .rank-list .num small { font-weight: 400; }
+
+/* ---------- Rosco (gráfico de anillo) ---------- */
+.donut { display: grid; grid-template-columns: minmax(150px, 190px) 1fr; gap: 1.1rem; align-items: center; }
+.donut svg { width: 100%; height: auto; overflow: visible; }
+.donut-track { stroke: var(--surface-2); }
+.donut-seg { stroke: var(--c); transition: opacity 0.2s; }
+.donut:hover .donut-seg { opacity: 0.55; }
+.donut .donut-seg:hover { opacity: 1; }
+.donut-big { font: 700 18px var(--font-display); fill: var(--text); }
+.donut-small { font: 400 8px var(--font-body); fill: var(--text-muted); }
+.donut-legend { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.45rem; min-width: 0; }
+.donut-legend li { display: grid; grid-template-columns: 12px 1fr auto; gap: 0.55rem; align-items: center; font-size: 0.92rem; min-width: 0; }
+.donut-dot { width: 12px; height: 12px; border-radius: 4px; background: var(--c); }
+.donut-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.donut-val { font-variant-numeric: tabular-nums; font-weight: 700; white-space: nowrap; }
+.donut-val small { font-weight: 400; color: var(--text-muted); margin-left: 0.4rem; }
+.d-c0 { --c: var(--accent); } .d-c1 { --c: var(--accent-2); } .d-c2 { --c: #4da3ff; } .d-c3 { --c: #c77dff; }
+.d-c4 { --c: #ff6f91; } .d-c5 { --c: #2ec4b6; } .d-c6 { --c: #ffb347; }
+.d-rest { --c: color-mix(in srgb, var(--text-muted) 70%, var(--surface)); }
+.d-none { --c: color-mix(in srgb, var(--text-muted) 40%, var(--surface)); }
+@media (max-width: 520px) { .donut { grid-template-columns: 1fr; } .donut svg { max-width: 230px; margin: 0 auto; } }
+.seg-link { padding: 0.35rem 0.8rem; text-decoration: none; color: var(--text-muted); border-radius: var(--radius); white-space: nowrap; }
+.seg-link[aria-current="true"] { background: var(--accent); color: var(--accent-contrast); font-weight: 700; }
+.tile-link { text-decoration: none; color: inherit; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 0.25rem; border-style: dashed; border-color: var(--accent); }
+.tile-link .tile-value { color: var(--accent); }
+.tile-link:active { transform: scale(0.97); }

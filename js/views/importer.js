@@ -19,6 +19,7 @@
   const FIELDS = [
     { id: 'title', label: 'Título', required: true, aliases: ['title', 'titulo', 'nombre', 'libro', 'book', 'name'] },
     { id: 'author', label: 'Autor', aliases: ['author', 'autor', 'autores', 'escritor', 'authors'] },
+    { id: 'publisher', label: 'Editorial', aliases: ['editorial', 'publisher', 'editor', 'editora'] },
     { id: 'isbn', label: 'ISBN', aliases: ['isbn13', 'isbn', 'isbn10'] },
     { id: 'totalPages', label: 'Páginas totales', aliases: ['numberofpages', 'pages', 'paginas', 'paginastotales', 'numpaginas', 'npaginas', 'pagecount'] },
     { id: 'readPages', label: 'Página actual', aliases: ['paginaactual', 'currentpage', 'readpages', 'paginaleida', 'paginasleidas', 'pagesread'] },
@@ -184,6 +185,7 @@
       seriesNo,
       format,
       ...(audio && size.minutes ? { totalMinutes: size.minutes, listenPos: status === 'completed' ? size.minutes : null } : {}),
+      publisher: g('publisher'),
       year: g('year').match(/\d{4}/)?.[0] || '',
     };
   }
@@ -196,6 +198,8 @@
     const existing = await LK.db.getBooks();
     const haveIsbn = new Set(existing.map((b) => LK.books.isbn.normalize(b.isbn)).filter(Boolean));
     const haveKey = new Set(existing.map(keyOf));
+    const byIsbn = new Map(existing.filter((b) => b.isbn).map((b) => [LK.books.isbn.normalize(b.isbn), b]));
+    const byKey = new Map(existing.map((b) => [keyOf(b), b]));
 
     return {
       html: `
@@ -263,16 +267,24 @@
             else skipped++;
           }
           const seen = new Set();
+          const updates = []; // libros que ya tienes y a los que les faltan datos que trae el archivo
           for (const b of books) {
             const k = keyOf(b);
             b.dup = (b.isbn && haveIsbn.has(b.isbn)) || haveKey.has(k) || seen.has(k);
+            const ex = (b.isbn && byIsbn.get(b.isbn)) || byKey.get(k);
+            if (b.dup && ex && !seen.has(k)) {
+              const patch = {};
+              if (!ex.publisher && b.publisher) patch.publisher = b.publisher;
+              if (ex.format === 'audio' && !ex.totalMinutes && b.totalMinutes) patch.totalMinutes = b.totalMinutes;
+              if (Object.keys(patch).length) updates.push({ ex, patch });
+            }
             seen.add(k);
           }
-          return { books, skipped };
+          return { books, skipped, updates };
         }
 
         function renderStep(fileName) {
-          const { books, skipped } = analyse();
+          const { books, skipped, updates } = analyse();
           const fresh = books.filter((b) => !b.dup);
           const dupes = books.length - fresh.length;
           const byStatus = (s) => fresh.filter((b) => b.status === s).length;
@@ -309,6 +321,7 @@
                 <div class="card tile"><div class="tile-value">${byStatus('reading')}</div><div class="tile-label">leyendo</div></div>
                 <div class="card tile"><div class="tile-value">${byStatus('wishlist')}</div><div class="tile-label">pendientes</div></div>
               </div>
+              ${updates.length ? `<p class="small">✨ ${updates.length} libros que ya tienes se completarán con datos que trae el archivo (editorial, duración).</p>` : ''}
               ${dupes ? `<p class="muted small">${dupes} ya están en tu biblioteca (o repetidos en el archivo) y se omitirán.</p>` : ''}
               ${skipped ? `<p class="muted small">${skipped} filas sin título se ignoran.</p>` : ''}
 
@@ -316,7 +329,7 @@
                 <span>Completar portadas, páginas y géneros desde internet <span class="muted small">(tarda un poco; los géneros alimentan tus atributos)</span></span></label>
 
               <div class="row">
-                <button class="btn btn-primary" id="imp-go" ${fresh.length && map.title ? '' : 'disabled'}>Importar ${fresh.length} libros</button>
+                <button class="btn btn-primary" id="imp-go" ${(fresh.length || updates.length) && map.title ? '' : 'disabled'}>${fresh.length ? `Importar ${fresh.length} libros${updates.length ? ` y completar ${updates.length}` : ''}` : `Completar ${updates.length} libros`}</button>
               </div>
               <div id="imp-progress" aria-live="polite"></div>
             </section>`;
@@ -328,10 +341,10 @@
               renderStep(fileName);
             })
           );
-          $step.querySelector('#imp-go').addEventListener('click', () => run(fresh));
+          $step.querySelector('#imp-go').addEventListener('click', () => run(fresh, updates));
         }
 
-        async function run(list) {
+        async function run(list, updates = []) {
           const enrich = $step.querySelector('#imp-enrich').checked;
           const $prog = $step.querySelector('#imp-progress');
           $step.querySelector('#imp-go').disabled = true;
@@ -345,10 +358,11 @@
             dateAdded: today,
             lastReadAt: b.status === 'reading' ? Date.now() : null,
           }));
+          for (const { ex, patch } of updates) await LK.db.saveBook({ ...ex, ...patch }, { silent: true });
           await LK.db.saveBooks(records);
           LK.app.refreshPlayer();
 
-          if (!enrich) return done($prog, records.length, 0, 0);
+          if (!enrich || !records.length) return done($prog, records.length, 0, 0, updates.length);
 
           $prog.innerHTML = '<div class="progress progress-lg"><span style="width:0%"></span></div><p class="muted small" id="imp-ptext"></p>';
           const bar = $prog.querySelector('.progress span');
@@ -372,15 +386,15 @@
               text.textContent = `Completando datos… ${n} de ${records.length}`;
             }
           };
-          await Promise.all([worker(), worker(), worker()]);
+          await Promise.all([worker(), worker()]);
           LK.app.refreshPlayer();
-          if (document.body.contains($prog)) done($prog, records.length, improved, 1);
+          if (document.body.contains($prog)) done($prog, records.length, improved, 1, updates.length);
         }
 
-        function done($prog, total, improved, enriched) {
+        function done($prog, total, improved, enriched, updated = 0) {
           $prog.innerHTML = `
             <div class="card banner-ok">
-              <strong>✓ ${total} libros importados</strong>
+              <strong>✓ ${total} libros importados${updated ? ` y ${updated} completados` : ''}</strong>
               ${enriched ? `<p class="small">${improved} se han completado con datos de internet.</p>` : ''}
               <div class="row"><a class="btn btn-primary" href="#/biblioteca/all">Ver mi biblioteca</a></div>
             </div>`;

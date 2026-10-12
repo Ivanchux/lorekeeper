@@ -10,7 +10,7 @@
    Sube CACHE_VERSION cada vez que cambies archivos de APP_SHELL.
    ========================================================== */
 
-const CACHE_VERSION = 'lk-v9';
+const CACHE_VERSION = 'lk-v11';
 const COVERS_CACHE = 'lk-covers';
 
 const APP_SHELL = [
@@ -49,6 +49,7 @@ const APP_SHELL = [
   './js/views/search.js',
   './js/views/book.js',
   './js/views/stats.js',
+  './js/views/rosco.js',
   './js/views/settings.js',
   './js/views/importer.js',
   './js/views/extras.js',

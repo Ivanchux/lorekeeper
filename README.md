@@ -26,7 +26,7 @@ Hecho con HTML, CSS y JavaScript puros, sin frameworks. Se instala como app (PWA
 - Escritas a mano o **desde una foto** (reconocimiento de texto en el propio dispositivo) y **compartibles como imagen**.
 
 **Motivación (opcional)**
-- Niveles, atributos, **24 logros**, **«Tu año en libros»** compartible, estadísticas (calendario, mensual, ritmo, objetivo anual con ritmo esperado, libros por año, autores favoritos, valoraciones y etiquetas). Los libros importados cuentan en totales y gráficas repartidos entre sus fechas de inicio y fin.
+- Niveles, atributos, **24 logros**, **«Tu año en libros»** compartible, estadísticas (calendario, mensual, ritmo, objetivo anual con ritmo esperado, libros por año, autores favoritos, valoraciones y etiquetas). Los libros importados cuentan en totales y gráficas repartidos entre sus fechas de inicio y fin (páginas y tiempo estimados si faltan). **Gráficos** en rosco por año, autor, género, editorial y formato. El **1 de enero** se abre solo «Tu año en libros» del año que termina.
 - **Modo fácil:** letra grande, botones grandes y sin nada de juego. Tamaño de letra en 3 niveles y 6 estéticas, agrupadas en oscuras (Terminal, Grimorio, Luciérnaga) y claras (Biblioteca, Minimal, Girasol).
 
 **Tus datos**

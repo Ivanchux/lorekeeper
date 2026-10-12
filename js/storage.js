@@ -193,6 +193,7 @@
     totalPages: 0,
     readPages: 0,
     totalMinutes: 0,      // duración del audiolibro
+    publisher: '',        // editorial
     listenPos: null,      // audiolibro: dónde vas (minutos de libro); null = se calcula con las sesiones
     speed: 1,             // audiolibro: velocidad habitual
     status: 'wishlist',   // 'reading' | 'wishlist' | 'completed' | 'abandoned'

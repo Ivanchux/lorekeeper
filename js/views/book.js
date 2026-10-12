@@ -209,6 +209,7 @@
           <label class="field span-all"><span>Etiquetas (separadas por comas)</span><input class="input" name="tags" value="${u.esc((book.tags || []).join(', '))}" placeholder="Regalo, Club de lectura, Viaje"></label>
           <label class="field span-all"><span>Géneros (separados por comas)</span><input class="input" name="genres" value="${u.esc((book.genres || []).join(', '))}"></label>
           <label class="field"><span>ISBN</span><input class="input" name="isbn" value="${u.esc(book.isbn || '')}" inputmode="numeric"></label>
+          <label class="field"><span>Editorial</span><input class="input" name="publisher" value="${u.esc(book.publisher || '')}"></label>
           <label class="field"><span>URL de la portada</span><input class="input" name="coverUrl" type="url" value="${u.esc(book.coverUrl)}"></label>
           <datalist id="series-list"></datalist>
           <div class="span-all row-between">
@@ -452,6 +453,7 @@
             genres: LK.books.splitList(f.genres.value),
             isbn: LK.books.isbn.normalize(f.isbn.value) || f.isbn.value.trim(),
             coverUrl,
+            publisher: f.publisher.value.trim(),
           });
           if (coverUrl !== fresh.coverUrl) {
             await LK.db.clearCover(id);
