@@ -1,0 +1,15 @@
+# Cloudflare Workers (plan gratuito).
+#   1) npx wrangler kv namespace create LK_VAULTS   → copia el id que te da
+#   2) pega ese id aquí abajo
+#   3) npx wrangler deploy
+name = "lorekeeper-sync"
+main = "worker.js"
+compatibility_date = "2024-11-01"
+
+[[kv_namespaces]]
+binding = "LK_VAULTS"
+id = "PEGA_AQUI_EL_ID_DE_TU_KV"
+
+# [vars]
+# CREATE_PASSWORD = "una-contraseña-para-poder-crear-cuentas"   # recomendado
+# ALLOWED_ORIGIN  = "https://tuusuario.github.io"                # opcional

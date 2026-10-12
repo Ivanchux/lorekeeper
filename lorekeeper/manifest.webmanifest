@@ -1,0 +1,76 @@
+{
+  "name": "LoreKeeper",
+  "short_name": "LoreKeeper",
+  "description": "Tracker de lectura gamificado, offline-first.",
+  "lang": "es",
+  "start_url": "./#/biblioteca",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0d0d12",
+  "theme_color": "#0d0d12",
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ],
+  "id": "./",
+  "categories": [
+    "books",
+    "education",
+    "lifestyle"
+  ],
+  "shortcuts": [
+    {
+      "name": "Seguir leyendo",
+      "short_name": "Leer",
+      "url": "./#/empezar",
+      "icons": [
+        {
+          "src": "icons/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Añadir libro",
+      "short_name": "Añadir",
+      "url": "./#/buscar",
+      "icons": [
+        {
+          "src": "icons/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Escanear ISBN",
+      "short_name": "Escanear",
+      "url": "./#/escanear",
+      "icons": [
+        {
+          "src": "icons/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    }
+  ]
+}

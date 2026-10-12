@@ -1,0 +1,251 @@
+/* ==========================================================
+   LIBROS 3D
+   Un libro es una caja de 6 caras con transformaciones CSS.
+   Tamaño controlado por variables:
+     --w  ancho de la tapa     --h  alto     --d  grosor (lomo)
+     --hue  tono de la tapa generada cuando no hay portada
+   ========================================================== */
+
+.b3d-scene {
+  position: relative;
+  display: grid;
+  place-items: center;
+  perspective: 1200px;
+  padding: 2rem 0;
+  touch-action: pan-y;          /* deja hacer scroll vertical en móvil */
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: grab;
+}
+.b3d-scene.grabbing { cursor: grabbing; }
+.b3d-scene::before {           /* halo detrás del libro */
+  content: "";
+  position: absolute;
+  width: 120%; aspect-ratio: 1;
+  max-width: 420px;
+  background: var(--scene-glow);
+  pointer-events: none;
+}
+.b3d-scene::after {            /* sombra en el suelo */
+  content: "";
+  position: absolute;
+  bottom: 0.9rem;
+  width: calc(var(--shadow-w, 180px) * 0.9);
+  height: 18px;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, var(--book-shadow), transparent);
+  pointer-events: none;
+}
+.b3d-scene:focus-visible { outline: 2px solid var(--accent); outline-offset: -4px; border-radius: var(--radius-lg); }
+
+.b3d {
+  --w: 180px;
+  --h: 270px;
+  --d: 32px;
+  --hue: 200;
+  position: relative;
+  width: var(--w);
+  height: var(--h);
+  transform-style: preserve-3d;
+  transform: rotateX(-8deg) rotateY(-28deg);
+  will-change: transform;
+}
+
+.b3d-face {
+  position: absolute;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+/* Tapa delantera */
+.b3d-front {
+  inset: 0;
+  transform: translateZ(calc(var(--d) / 2));
+  border-radius: 1px 3px 3px 1px;
+  overflow: hidden;
+  background: hsl(var(--hue) 45% 28%);
+}
+.b3d-front img {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  pointer-events: none;
+  -webkit-user-drag: none;
+}
+/* Brillo y pliegue del lomo sobre la portada */
+.b3d-front::after {
+  content: "";
+  position: absolute; inset: 0;
+  background:
+    linear-gradient(90deg, rgba(0,0,0,.35) 0, rgba(255,255,255,.12) 3%, rgba(0,0,0,.18) 6%, transparent 9%),
+    linear-gradient(115deg, rgba(255,255,255,.14), transparent 40%);
+  pointer-events: none;
+}
+
+/* Portada generada cuando el libro no tiene imagen */
+.b3d-cover-gen {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column; justify-content: space-between;
+  padding: 14% 12% 12% 16%;
+  color: hsl(var(--hue) 40% 92%);
+  background:
+    linear-gradient(160deg, hsl(var(--hue) 55% 34%), hsl(calc(var(--hue) + 30) 50% 16%));
+  font-family: var(--font-display);
+  text-align: left;
+}
+.b3d-cover-gen::before {
+  content: "";
+  position: absolute; inset: 6% 7% 6% 11%;
+  border: 1px solid hsl(var(--hue) 50% 70% / 0.45);
+  pointer-events: none;
+}
+.b3d-cover-gen .t { font-size: calc(var(--w) * 0.1); font-weight: 700; line-height: 1.15; overflow-wrap: anywhere; }
+.b3d-cover-gen .a { font-size: calc(var(--w) * 0.065); opacity: 0.8; }
+
+/* Contraportada */
+.b3d-back {
+  inset: 0;
+  transform: rotateY(180deg) translateZ(calc(var(--d) / 2));
+  background: linear-gradient(160deg, hsl(var(--hue) 40% 24%), hsl(var(--hue) 40% 14%));
+  border-radius: 3px 1px 1px 3px;
+}
+
+/* Lomo (lado izquierdo) */
+.b3d-spine {
+  width: var(--d);
+  height: var(--h);
+  left: calc(var(--w) / 2 - var(--d) / 2);
+  transform: rotateY(-90deg) translateZ(calc(var(--w) / 2));
+  background: linear-gradient(90deg, hsl(var(--hue) 45% 16%), hsl(var(--hue) 45% 26%) 50%, hsl(var(--hue) 45% 16%));
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+.b3d-spine span {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  max-height: 88%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-display);
+  font-size: clamp(7px, calc(var(--d) * 0.36), 13px);
+  color: hsl(var(--hue) 40% 88%);
+  letter-spacing: 0.04em;
+}
+
+/* Canto de las hojas (lado derecho) */
+.b3d-pages {
+  width: calc(var(--d) - 4px);
+  height: calc(var(--h) - 6px);
+  top: 3px;
+  left: calc(var(--w) / 2 - var(--d) / 2 + 2px);
+  transform: rotateY(90deg) translateZ(calc(var(--w) / 2 - 3px));
+  background: repeating-linear-gradient(90deg, var(--book-pages) 0 2px, var(--book-pages-line) 2px 3px);
+}
+
+/* Canto superior e inferior */
+.b3d-top,
+.b3d-bottom {
+  width: calc(var(--w) - 3px);
+  height: calc(var(--d) - 4px);
+  left: 0;
+  top: calc(var(--h) / 2 - var(--d) / 2 + 2px);
+  background: repeating-linear-gradient(0deg, var(--book-pages) 0 2px, var(--book-pages-line) 2px 3px);
+}
+.b3d-top { transform: rotateX(90deg) translateZ(calc(var(--h) / 2 - 3px)); }
+.b3d-bottom { transform: rotateX(-90deg) translateZ(calc(var(--h) / 2 - 3px)); }
+
+/* ==========================================================
+   ESTANTERÍA
+   ========================================================== */
+
+.shelf {
+  --gap: 1.4rem;
+  --mini-h: 168px;                          /* alto del hueco del libro */
+  --row-h: calc(var(--mini-h) + 112px);     /* libro + título + autor + progreso */
+  --row-gap: 1.25rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(112px, 1fr));
+  grid-auto-rows: var(--row-h);
+  column-gap: var(--gap);
+  row-gap: var(--row-gap);
+  padding: 0 calc(var(--gap) / 2);
+  /* Baldas: una franja de madera por fila, de lado a lado */
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent 0 calc(var(--mini-h) + 2px),
+    var(--shelf-edge) calc(var(--mini-h) + 2px) calc(var(--mini-h) + 4px),
+    var(--shelf) calc(var(--mini-h) + 4px) calc(var(--mini-h) + 14px),
+    color-mix(in srgb, var(--book-shadow) 60%, transparent) calc(var(--mini-h) + 14px) calc(var(--mini-h) + 16px),
+    transparent calc(var(--mini-h) + 16px) calc(var(--row-h) + var(--row-gap))
+  );
+}
+
+.shelf-item {
+  position: relative;
+  display: flex; flex-direction: column; align-items: center;
+  color: var(--text);
+  text-decoration: none;
+  min-width: 0;
+}
+.shelf-item .b3d-mini {
+  width: 100%;
+  height: calc(var(--mini-h) + 2px);
+  display: flex; align-items: flex-end; justify-content: center;
+  perspective: 700px;
+}
+
+.shelf-item .b3d {
+  --w: 96px;
+  --h: 144px;
+  transform: rotateY(-32deg);
+  transform-origin: 50% 100%;
+  transition: transform 0.35s cubic-bezier(.2,.8,.3,1);
+  filter: drop-shadow(4px 6px 6px var(--book-shadow));
+}
+.shelf-item:hover .b3d,
+.shelf-item:focus-visible .b3d { transform: rotateY(-8deg) translateY(-8px) translateZ(14px); }
+
+.shelf-meta { width: 100%; max-width: 132px; margin-top: 1.2rem; text-align: center; }
+.shelf-title {
+  font-size: 0.85rem; line-height: 1.25;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.shelf-author { font-size: 0.75rem; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.shelf-meta .progress { margin-top: 0.4rem; height: 4px; }
+
+.shelf-wrap { overflow: hidden; padding-bottom: 1rem; }
+
+/* ==========================================================
+   LIBRO DESTACADO Y FICHA
+   ========================================================== */
+
+.hero {
+  display: grid;
+  grid-template-columns: minmax(200px, 300px) 1fr;
+  gap: 1.5rem;
+  align-items: center;
+}
+.hero-info h2 { font-size: 1.35rem; margin-bottom: 0.2rem; text-transform: none; letter-spacing: 0; }
+.hero-kicker { font-size: 0.78rem; color: var(--accent); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 0.5rem; }
+.hero-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 1rem; }
+
+.detail-top {
+  display: grid;
+  grid-template-columns: minmax(220px, 320px) 1fr;
+  gap: 1.5rem;
+  align-items: center;
+}
+.detail-top h1 { text-transform: none; letter-spacing: 0; font-size: 1.6rem; margin-bottom: 0.25rem; }
+.detail-author { color: var(--text-muted); margin-bottom: 0.75rem; }
+.drag-hint { font-size: 0.75rem; color: var(--text-muted); text-align: center; margin-top: -1rem; }
+
+@media (max-width: 640px) {
+  .hero, .detail-top { grid-template-columns: 1fr; text-align: center; }
+  .hero .chips, .detail-top .chips, .hero-actions, .detail-top .row { justify-content: center; }
+  .b3d-scene .b3d { --w: 150px; --h: 225px; }
+  .shelf { grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); --gap: 1rem; }
+  .shelf { --mini-h: 140px; }
+  .shelf-item .b3d { --w: 82px; --h: 123px; }
+}

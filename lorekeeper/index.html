@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>LoreKeeper</title>
+  <meta name="description" content="Tracker de lectura gamificado, offline-first.">
+  <meta name="theme-color" content="#0d0d12">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+
+  <!-- Aplica tema y preferencias (letra, modo fácil, RPG) antes de pintar para evitar parpadeos -->
+  <script>
+    try {
+      var t = localStorage.getItem('lk-theme');
+      if (t) document.documentElement.dataset.theme = t;
+      var p = JSON.parse(localStorage.getItem('lk-prefs') || '{}');
+      var r = document.documentElement;
+      r.style.setProperty('--font-scale', p.font || 1);
+      r.dataset.rpg = p.rpg === false ? 'off' : 'on';
+      r.dataset.easy = p.easy ? 'on' : 'off';
+    } catch (e) {}
+  </script>
+
+  <link rel="stylesheet" href="css/themes.css">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/book3d.css">
+  <link rel="stylesheet" href="css/features.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="#/biblioteca">
+      <span class="brand-mark" aria-hidden="true"></span>
+      <span class="brand-name">LoreKeeper</span>
+    </a>
+
+    <!-- Aparece cuando hay una sesión de lectura en marcha -->
+    <button class="timer-pill" id="timer-pill" hidden>
+      <span class="timer-pill-dot" aria-hidden="true"></span>
+      <span id="timer-pill-time">00:00</span>
+    </button>
+
+    <a class="player rpg-only" href="#/estadisticas" aria-label="Progreso del lector">
+      <span class="player-level">Nv. <strong id="ui-level">1</strong></span>
+      <span class="xpbar" role="progressbar" aria-valuemin="0" aria-valuemax="100" id="ui-xpbar">
+        <span class="xpbar-fill" id="ui-xpfill"></span>
+      </span>
+    </a>
+  </header>
+
+  <main id="view" class="view" tabindex="-1">
+    <noscript><p class="empty">LoreKeeper necesita JavaScript activado.</p></noscript>
+  </main>
+
+  <nav class="tabbar" aria-label="Navegación principal">
+    <a href="#/biblioteca" data-route="biblioteca">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h4v16H4zM10 4h4v16h-4zM16.5 4.5l3.8-1 4 15.5-3.8 1z" transform="scale(.92) translate(1 1)"/></svg>
+      <span>Biblioteca</span>
+    </a>
+    <a href="#/buscar" data-route="buscar">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" fill="none" stroke-width="2.2"/><path d="M15.5 15.5 21 21" fill="none" stroke-width="2.4" stroke-linecap="round"/></svg>
+      <span>Buscar</span>
+    </a>
+    <a href="#/estadisticas" data-route="estadisticas">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V11h3.5v9zM10.25 20V4h3.5v16zM16.5 20v-6H20v6z"/></svg>
+      <span>Estadísticas</span>
+    </a>
+    <a href="#/ajustes" data-route="ajustes">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h11M18 6h3M3 12h3M10 12h11M3 18h9M16 18h5" fill="none" stroke-width="2" stroke-linecap="round"/><circle cx="16" cy="6" r="2.2" fill="none" stroke-width="2"/><circle cx="8" cy="12" r="2.2" fill="none" stroke-width="2"/><circle cx="14" cy="18" r="2.2" fill="none" stroke-width="2"/></svg>
+      <span>Ajustes</span>
+    </a>
+  </nav>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <!--
+    Scripts clásicos (no módulos ES) para que la app también funcione
+    abriendo index.html con doble clic o desde un USB, sin servidor.
+    El orden importa: cada archivo usa lo que definen los anteriores.
+  -->
+  <script src="js/util.js" defer></script>
+  <script src="js/prefs.js" defer></script>
+  <script src="js/books.js" defer></script>
+  <script src="js/storage.js" defer></script>
+  <script src="js/rpg.js" defer></script>
+  <script src="js/achievements.js" defer></script>
+  <script src="js/summary.js" defer></script>
+  <script src="js/theme.js" defer></script>
+  <script src="js/api.js" defer></script>
+  <script src="js/book3d.js" defer></script>
+  <script src="js/charts.js" defer></script>
+  <script src="js/ui.js" defer></script>
+  <script src="js/cards.js" defer></script>
+  <script src="js/csv.js" defer></script>
+  <script src="js/scanner.js" defer></script>
+  <script src="js/ocr.js" defer></script>
+  <script src="js/sync.js" defer></script>
+  <script src="js/reminder.js" defer></script>
+  <script src="js/timer.js" defer></script>
+  <script src="js/onboarding.js" defer></script>
+  <script src="js/views/library.js" defer></script>
+  <script src="js/views/search.js" defer></script>
+  <script src="js/views/book.js" defer></script>
+  <script src="js/views/stats.js" defer></script>
+  <script src="js/views/settings.js" defer></script>
+  <script src="js/views/importer.js" defer></script>
+  <script src="js/views/extras.js" defer></script>
+  <script src="js/app.js" defer></script>
+</body>
+</html>

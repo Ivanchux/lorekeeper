@@ -1,0 +1,159 @@
+/* ==========================================================
+   TEMAS
+   Cada tema solo redefine variables. Los componentes de
+   base.css y book3d.css nunca usan colores ni fuentes sueltos.
+
+   Para añadir un tema:
+   1. Copia un bloque y cambia el nombre en [data-theme="..."].
+   2. Regístralo en js/theme.js (nombre, descripción, muestras).
+   ========================================================== */
+
+/* ---------- Terminal (por defecto): oscuro, neón, monoespaciado ---------- */
+:root,
+[data-theme="terminal"] {
+  color-scheme: dark;
+
+  --bg: #0b0b10;
+  --surface: #14141c;
+  --surface-2: #1d1d28;
+  --border: #2a2a3a;
+  --text: #e4e4ec;
+  --text-muted: #8c8ca3;
+  --accent: #00e1ec;
+  --accent-2: #ff3dd8;
+  --accent-contrast: #001214;
+  --danger: #ff5c7a;
+  --success: #4ce0a0;
+  --star: #ffd35c;
+
+  --font-body: ui-monospace, "Cascadia Code", "JetBrains Mono", "SF Mono", Consolas, "Courier New", monospace;
+  --font-display: var(--font-body);
+  --letter-display: 0.08em;
+  --transform-display: uppercase;
+
+  --radius: 2px;
+  --radius-lg: 4px;
+  --shadow: 0 0 0 1px var(--border);
+  --glow: 0 0 14px color-mix(in srgb, var(--accent) 40%, transparent);
+
+  /* Estantería y libros 3D */
+  --shelf: #1a1a26;
+  --shelf-edge: color-mix(in srgb, var(--accent) 55%, transparent);
+  --book-pages: #cfcfdb;
+  --book-pages-line: #a9a9b8;
+  --book-shadow: rgba(0, 0, 0, 0.6);
+  --scene-glow: radial-gradient(closest-side, color-mix(in srgb, var(--accent) 18%, transparent), transparent);
+
+  --scanlines: 0.06;
+}
+
+/* ---------- Biblioteca: papel, madera y serif ---------- */
+[data-theme="biblioteca"] {
+  color-scheme: light;
+
+  --bg: #f2eadc;
+  --surface: #fbf7ef;
+  --surface-2: #ece1cd;
+  --border: #d9c9ab;
+  --text: #2b2118;
+  --text-muted: #76644f;
+  --accent: #7d2b22;
+  --accent-2: #a87326;
+  --accent-contrast: #fbf7ef;
+  --danger: #a3271f;
+  --success: #3d7a3a;
+  --star: #b8801d;
+
+  --font-body: Charter, "Bitstream Charter", "Iowan Old Style", Georgia, "Times New Roman", serif;
+  --font-display: "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+  --letter-display: 0.01em;
+  --transform-display: none;
+
+  --radius: 6px;
+  --radius-lg: 12px;
+  --shadow: 0 1px 2px rgba(60, 40, 20, 0.12), 0 4px 14px rgba(60, 40, 20, 0.08);
+  --glow: 0 2px 10px rgba(125, 43, 34, 0.18);
+
+  --shelf: #8a5a36;
+  --shelf-edge: #6b4226;
+  --book-pages: #f3e7cb;
+  --book-pages-line: #d9c69c;
+  --book-shadow: rgba(60, 35, 15, 0.35);
+  --scene-glow: radial-gradient(closest-side, rgba(255, 220, 160, 0.55), transparent);
+
+  --scanlines: 0;
+}
+
+/* ---------- Grimorio: oscuro cálido, oro viejo, fantasía oscura ---------- */
+[data-theme="grimorio"] {
+  color-scheme: dark;
+
+  --bg: #120d0b;
+  --surface: #1c1512;
+  --surface-2: #271d18;
+  --border: #3b2c23;
+  --text: #ecdfcc;
+  --text-muted: #a48f78;
+  --accent: #d9a441;
+  --accent-2: #b23a3a;
+  --accent-contrast: #1a1108;
+  --danger: #e06450;
+  --success: #8fbf6a;
+  --star: #e8b84f;
+
+  --font-body: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  --font-display: "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+  --letter-display: 0.04em;
+  --transform-display: none;
+
+  --radius: 4px;
+  --radius-lg: 8px;
+  --shadow: 0 0 0 1px var(--border), 0 6px 20px rgba(0, 0, 0, 0.35);
+  --glow: 0 0 16px rgba(217, 164, 65, 0.28);
+
+  --shelf: #3a271c;
+  --shelf-edge: #5a3d2a;
+  --book-pages: #e3d3b0;
+  --book-pages-line: #b9a57c;
+  --book-shadow: rgba(0, 0, 0, 0.7);
+  --scene-glow: radial-gradient(closest-side, rgba(217, 164, 65, 0.2), transparent);
+
+  --scanlines: 0;
+}
+
+/* ---------- Minimal: claro, neutro, sin adornos ---------- */
+[data-theme="minimal"] {
+  color-scheme: light;
+
+  --bg: #f6f6f4;
+  --surface: #ffffff;
+  --surface-2: #efefec;
+  --border: #e0e0db;
+  --text: #1d1d1b;
+  --text-muted: #6b6b66;
+  --accent: #2f5bd3;
+  --accent-2: #0f9d8a;
+  --accent-contrast: #ffffff;
+  --danger: #c8312b;
+  --success: #1f8a4c;
+  --star: #e0a100;
+
+  --font-body: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-display: var(--font-body);
+  --letter-display: -0.01em;
+  --transform-display: none;
+
+  --radius: 8px;
+  --radius-lg: 14px;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.05), 0 2px 10px rgba(0, 0, 0, 0.04);
+  --glow: 0 0 0 3px color-mix(in srgb, var(--accent) 20%, transparent);
+
+  --shelf: #e4e2dc;
+  --shelf-edge: #cfccc4;
+  --book-pages: #f7f5ef;
+  --book-pages-line: #dedad0;
+  --book-shadow: rgba(0, 0, 0, 0.18);
+  --scene-glow: radial-gradient(closest-side, rgba(47, 91, 211, 0.08), transparent);
+
+  --scanlines: 0;
+}
