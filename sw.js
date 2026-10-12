@@ -10,7 +10,7 @@
    Sube CACHE_VERSION cada vez que cambies archivos de APP_SHELL.
    ========================================================== */
 
-const CACHE_VERSION = 'lk-v5';
+const CACHE_VERSION = 'lk-v6';
 const COVERS_CACHE = 'lk-covers';
 
 const APP_SHELL = [
