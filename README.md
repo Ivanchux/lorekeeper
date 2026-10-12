@@ -12,6 +12,7 @@ Hecho con HTML, CSS y JavaScript puros, sin frameworks. Se instala como app (PWA
 - **Registrar sesiones** por páginas o por porcentaje. Atajos de 15/30/45/60/90 min.
 - **Audiolibros de verdad**: tiempo real escuchado (horas y minutos), **velocidad** (0,75× a 3×), punto de inicio y punto final del audio, que se pueden dar como *posición*, *«me quedan»* (lo que enseñan Audible o Storytel) o *porcentaje*. Capítulo opcional, «vas por…» en vivo con el reloj, progreso por posición, ritmo medio y logros propios. Pensado para quien escucha mientras hace otras cosas.
 - **Libro 3D con el color de la portada** (lomo, contraportada, cantos y brillo) y **animaciones** por toda la app (entradas escalonadas, barras y números que se llenan, confeti al terminar un libro). Se apagan con «Reducir movimiento» del sistema o con el interruptor de Ajustes.
+- **Diseño de app en el móvil** (`css/mobile.css`): títulos grandes, barra inferior flotante, tarjetas redondeadas, botones de 48–56 px, ventanas que suben desde abajo, pestañas en píldoras y letra del sistema en el tema Terminal para que no se vea comprimido. Al instalarla en iPhone abre a pantalla completa. En escritorio no cambia nada.
 
 **Biblioteca**
 - Estanterías (Leyendo, Pendientes, Leídos, Abandonados), buscador interno, orden, libro 3D que se arrastra.
@@ -25,8 +26,8 @@ Hecho con HTML, CSS y JavaScript puros, sin frameworks. Se instala como app (PWA
 - Escritas a mano o **desde una foto** (reconocimiento de texto en el propio dispositivo) y **compartibles como imagen**.
 
 **Motivación (opcional)**
-- Niveles, atributos, **24 logros**, **«Tu año en libros»** compartible, estadísticas (calendario, mensual, ritmo, objetivo anual con ritmo esperado).
-- **Modo fácil:** letra grande, botones grandes y sin nada de juego. Tamaño de letra en 3 niveles y 4 estéticas.
+- Niveles, atributos, **24 logros**, **«Tu año en libros»** compartible, estadísticas (calendario, mensual, ritmo, objetivo anual con ritmo esperado, libros por año, autores favoritos, valoraciones y etiquetas). Los libros importados cuentan en totales y gráficas repartidos entre sus fechas de inicio y fin.
+- **Modo fácil:** letra grande, botones grandes y sin nada de juego. Tamaño de letra en 3 niveles y 6 estéticas, agrupadas en oscuras (Terminal, Grimorio, Luciérnaga) y claras (Biblioteca, Minimal, Girasol).
 
 **Tus datos**
 - Todo en el dispositivo. Copias: enviar por el menú del móvil (Drive, WhatsApp, correo), descargar JSON, restaurar.
@@ -58,11 +59,16 @@ python -m http.server 8080      # o: npx serve .
 
 Para el móvil hace falta publicarla con https: GitHub Pages, Cloudflare Pages o tu servidor (`backend/` también sirve la app).
 
+**Instalarla en el móvil**
+
+- **iPhone:** abrir el enlace en Safari → Compartir → *Añadir a pantalla de inicio* y usarla desde el icono. La app instalada tiene su propio almacenamiento, así que los libros se añaden ya desde ahí. Los avisos de la sesión de lectura requieren iOS 16.4 o superior.
+- **Android:** Chrome → menú → *Instalar aplicación*.
+
 ## Estructura
 
 ```
 ├── index.html, manifest.webmanifest, sw.js
-├── css/        themes.css · base.css · book3d.css · features.css · motion.css
+├── css/        themes.css · base.css · book3d.css · features.css · motion.css · mobile.css
 ├── js/
 │   ├── util, prefs, books, storage, rpg, audio, achievements, summary
 │   ├── theme, api, book3d, fx, charts, ui, cards
@@ -96,7 +102,7 @@ Rangos: Aprendiz (1) · Lector (3) · Escriba (5) · Erudito (8) · Archivista (
 
 ## Pruebas
 
-`cd backend && npm test` prueba el servidor. La interfaz se ha probado con Playwright (Chromium): flujos, desbordes en móvil, temas y `file://`.
+`cd backend && npm test` prueba el servidor. La interfaz se ha probado con Playwright (Chromium): flujos, desbordes en móvil (360 y 390 px, letra grande, los cuatro temas) y `file://`. Falta probarla en un iPhone real.
 
 ## Licencia
 

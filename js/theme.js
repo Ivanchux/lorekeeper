@@ -13,6 +13,7 @@
   const THEMES = [
     {
       id: 'terminal',
+      mode: 'dark',
       name: 'Terminal',
       description: 'Oscuro, monoespaciado, acentos neón y líneas CRT.',
       swatch: ['#0b0b10', '#14141c', '#00e1ec', '#ff3dd8'],
@@ -20,6 +21,7 @@
     },
     {
       id: 'grimorio',
+      mode: 'dark',
       name: 'Grimorio',
       description: 'Fantasía oscura: madera quemada y oro viejo.',
       swatch: ['#120d0b', '#271d18', '#d9a441', '#b23a3a'],
@@ -27,6 +29,7 @@
     },
     {
       id: 'biblioteca',
+      mode: 'light',
       name: 'Biblioteca',
       description: 'Papel, madera y tipografía serif.',
       swatch: ['#f2eadc', '#fbf7ef', '#7d2b22', '#a87326'],
@@ -34,10 +37,27 @@
     },
     {
       id: 'minimal',
+      mode: 'light',
       name: 'Minimal',
       description: 'Claro y neutro, sin adornos.',
       swatch: ['#f6f6f4', '#ffffff', '#2f5bd3', '#0f9d8a'],
       themeColor: '#ffffff',
+    },
+    {
+      id: 'luciernaga',
+      mode: 'dark',
+      name: 'Luciérnaga',
+      description: 'Bosque de noche con luces verdes que flotan.',
+      swatch: ['#06130d', '#153126', '#c8f751', '#3ddc97'],
+      themeColor: '#0d211a',
+    },
+    {
+      id: 'girasol',
+      mode: 'light',
+      name: 'Girasol',
+      description: 'Amarillo mantequilla, verde hoja y formas redondas.',
+      swatch: ['#fff3b8', '#fffbe3', '#2c7a3f', '#f0a000'],
+      themeColor: '#fffbe3',
     },
   ];
 

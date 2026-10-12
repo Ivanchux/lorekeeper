@@ -157,3 +157,101 @@
 
   --scanlines: 0;
 }
+
+/* ---------- Girasol: claro, amarillo mantequilla y verde hoja ---------- */
+[data-theme="girasol"] {
+  color-scheme: light;
+
+  --bg: #fff3b8;
+  --surface: #fffbe3;
+  --surface-2: #fbe99a;
+  --border: #ecd270;
+  --text: #2b2610;
+  --text-muted: #7b6c2e;
+  --accent: #2c7a3f;
+  --accent-2: #f0a000;
+  --accent-contrast: #ffffff;
+  --danger: #c4372d;
+  --success: #2c7a3f;
+  --star: #f0a000;
+
+  --font-body: ui-rounded, "SF Pro Rounded", "Nunito", "Varela Round", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-display: var(--font-body);
+  --letter-display: -0.01em;
+  --transform-display: none;
+
+  --radius: 14px;
+  --radius-lg: 24px;
+  --shadow: 0 2px 0 rgba(160, 120, 0, 0.12), 0 8px 24px rgba(160, 120, 0, 0.14);
+  --glow: 0 0 0 4px color-mix(in srgb, var(--accent) 18%, transparent);
+
+  --shelf: #e8c254;
+  --shelf-edge: #c99a1c;
+  --book-pages: #fffaf0;
+  --book-pages-line: #ead9a0;
+  --book-shadow: rgba(130, 95, 0, 0.3);
+  --scene-glow: radial-gradient(closest-side, rgba(255, 196, 0, 0.35), transparent);
+
+  --scanlines: 0;
+}
+
+/* ---------- Luciérnaga: oscuro, bosque de noche y luz verde-amarilla ---------- */
+[data-theme="luciernaga"] {
+  color-scheme: dark;
+
+  --bg: #06130d;
+  --surface: #0d211a;
+  --surface-2: #153126;
+  --border: #21493a;
+  --text: #e5f5e8;
+  --text-muted: #86ab98;
+  --accent: #c8f751;
+  --accent-2: #3ddc97;
+  --accent-contrast: #0b1a00;
+  --danger: #ff7d6e;
+  --success: #3ddc97;
+  --star: #ffe066;
+
+  --font-body: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-display: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  --letter-display: -0.01em;
+  --transform-display: none;
+
+  --radius: 12px;
+  --radius-lg: 22px;
+  --shadow: 0 0 0 1px var(--border), 0 10px 28px rgba(0, 0, 0, 0.35);
+  --glow: 0 0 20px color-mix(in srgb, var(--accent) 38%, transparent);
+
+  --shelf: #12291f;
+  --shelf-edge: color-mix(in srgb, var(--accent) 60%, transparent);
+  --book-pages: #dfe9d2;
+  --book-pages-line: #b6c4a6;
+  --book-shadow: rgba(0, 0, 0, 0.65);
+  --scene-glow: radial-gradient(closest-side, color-mix(in srgb, var(--accent) 22%, transparent), transparent);
+
+  --scanlines: 0;
+}
+
+/* Las luciérnagas: unas motas de luz que flotan despacio detrás de todo */
+[data-theme="luciernaga"] body { position: relative; }
+[data-theme="luciernaga"]::before {
+  content: "";
+  position: fixed; inset: -10% 0; z-index: -1; pointer-events: none;
+  background:
+    radial-gradient(circle at 12% 22%, rgba(200, 247, 81, 0.85) 0 1.5px, transparent 4px),
+    radial-gradient(circle at 78% 14%, rgba(200, 247, 81, 0.7) 0 1.5px, transparent 4px),
+    radial-gradient(circle at 52% 38%, rgba(61, 220, 151, 0.7) 0 1.5px, transparent 4px),
+    radial-gradient(circle at 90% 55%, rgba(200, 247, 81, 0.8) 0 1.5px, transparent 4px),
+    radial-gradient(circle at 30% 66%, rgba(61, 220, 151, 0.7) 0 1.5px, transparent 4px),
+    radial-gradient(circle at 66% 82%, rgba(200, 247, 81, 0.75) 0 1.5px, transparent 4px),
+    radial-gradient(circle at 8% 90%, rgba(200, 247, 81, 0.6) 0 1.5px, transparent 4px);
+  animation: lk-fireflies 14s ease-in-out infinite alternate;
+}
+@keyframes lk-fireflies {
+  0%   { transform: translate3d(0, 0, 0);       opacity: 0.35; }
+  50%  { transform: translate3d(14px, -22px, 0); opacity: 1; }
+  100% { transform: translate3d(-10px, 12px, 0); opacity: 0.5; }
+}
+html[data-motion="off"] [data-theme="luciernaga"]::before,
+[data-theme="luciernaga"][data-motion="off"]::before { animation: none; opacity: 0.5; }
+@media (prefers-reduced-motion: reduce) { [data-theme="luciernaga"]::before { animation: none; opacity: 0.5; } }

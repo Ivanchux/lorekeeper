@@ -81,15 +81,16 @@
       if (est?.usage) storageInfo = ` · ${(est.usage / 1024 / 1024).toFixed(1)} MB usados`;
     } catch {}
 
-    const themeOptions = LK.theme.THEMES.map(
-      (t) => `
+    const themeOption = (t) => `
         <label class="theme-option">
           <input type="radio" name="theme" value="${t.id}" ${t.id === current ? 'checked' : ''}>
           <span class="theme-swatch">${t.swatch.map((c) => `<span style="background:${c}"></span>`).join('')}</span>
           <strong>${u.esc(t.name)}</strong>
           <span class="muted">${u.esc(t.description)}</span>
-        </label>`
-    ).join('');
+        </label>`;
+    const themeGroup = (mode, label) =>
+      `<div class="theme-group"><h3>${label}</h3><div class="theme-grid">${LK.theme.THEMES.filter((t) => t.mode === mode).map(themeOption).join('')}</div></div>`;
+    const themeOptions = themeGroup('dark', '🌙 Oscuros') + themeGroup('light', '☀️ Claros');
 
     const lastBackup = (() => {
       try {
@@ -159,7 +160,7 @@
               <div><strong>Animaciones</strong><div class="muted small">Movimiento y efectos: el libro que flota, las barras que se llenan, el confeti. Desactívalas si el móvil va justo o prefieres una app más quieta. Si tu móvil tiene «Reducir movimiento», se respeta siempre.</div></div>
               <label class="switch"><input type="checkbox" id="motion" ${prefs.motion ? 'checked' : ''} aria-label="Animaciones"><span></span></label>
             </div>
-            <fieldset class="theme-grid">
+            <fieldset class="theme-groups">
               <legend class="sr-only">Elige el aspecto de la app</legend>
               ${themeOptions}
             </fieldset>
@@ -198,8 +199,10 @@
             </div>
             <div class="row">
               <a class="btn" href="#/importar">📥 Importar de Bookmory / Goodreads</a>
+              <button class="btn" id="btn-covers" hidden>🖼 Buscar portadas que faltan</button>
               <button class="btn btn-danger" id="btn-wipe">Borrar todo</button>
             </div>
+            <p class="muted small" id="covers-msg" aria-live="polite" hidden></p>
           </section>
 
           <section class="card stack-sm">
@@ -358,6 +361,36 @@
         }
 
         /* ----- Copias ----- */
+        // Portadas que faltan (libros importados, sobre todo)
+        const $covers = root.querySelector('#btn-covers');
+        const $coversMsg = root.querySelector('#covers-msg');
+        LK.db.getBooks().then((bs) => {
+          const n = bs.filter((b) => !b.coverUrl).length;
+          if (n && $covers.isConnected) {
+            $covers.textContent = `🖼 Buscar portadas que faltan (${n})`;
+            $covers.hidden = false;
+          }
+        });
+        $covers.addEventListener('click', async () => {
+          if (!navigator.onLine) return u.toast('Necesitas conexión para buscar portadas', 'error');
+          $covers.disabled = true;
+          $coversMsg.hidden = false;
+          const ctl = new AbortController();
+          try {
+            const r = await LK.api.fillMissing(({ done, total, found }) => {
+              if ($coversMsg.isConnected) $coversMsg.textContent = `Buscando… ${done} de ${total} · ${found} portadas encontradas. Puedes dejar el móvil con la pantalla encendida.`;
+              else ctl.abort();
+            }, { signal: ctl.signal });
+            if ($coversMsg.isConnected) {
+              $coversMsg.textContent = `Listo: ${r.found} de ${r.total} portadas encontradas${r.found < r.total ? '. El resto no está en los catálogos; puedes ponerla a mano desde la ficha del libro.' : '.'}`;
+              $covers.textContent = r.found < r.total ? `🖼 Reintentar las que faltan (${r.total - r.found})` : '🖼 Todas las portadas listas';
+            }
+            LK.app.refreshPlayer?.();
+          } finally {
+            $covers.disabled = false;
+          }
+        });
+
         root.querySelector('#btn-export').addEventListener('click', async () => {
           const data = await LK.db.exportAll();
           u.download(`lorekeeper-${u.isoDate()}.json`, JSON.stringify(data, null, 2));

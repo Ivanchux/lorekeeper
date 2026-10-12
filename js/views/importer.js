@@ -24,13 +24,14 @@
     { id: 'readPages', label: 'Página actual', aliases: ['paginaactual', 'currentpage', 'readpages', 'paginaleida', 'paginasleidas', 'pagesread'] },
     { id: 'status', label: 'Estado / estantería', aliases: ['exclusiveshelf', 'estado', 'status', 'estanteria', 'shelf', 'state', 'lectura'] },
     { id: 'rating', label: 'Valoración', aliases: ['myrating', 'valoracion', 'rating', 'puntuacion', 'calificacion', 'estrellas', 'nota', 'stars'] },
+    { id: 'period', label: 'Período de lectura (inicio ~ fin)', aliases: ['periododelectura', 'periodoleido', 'readingperiod'] },
     { id: 'dateStarted', label: 'Fecha de inicio', aliases: ['datestarted', 'fechadeinicio', 'fechainicio', 'startdate', 'started', 'inicio', 'empezado', 'fechaempezado'] },
     { id: 'dateCompleted', label: 'Fecha de fin', aliases: ['dateread', 'fechadefin', 'fechafin', 'enddate', 'finished', 'fin', 'terminado', 'fechaterminado', 'fechalectura', 'fechadelectura', 'completado'] },
     { id: 'review', label: 'Reseña / notas', aliases: ['myreview', 'resena', 'review', 'notas', 'notes', 'comentario', 'comentarios', 'memo', 'opinion'] },
     { id: 'genres', label: 'Géneros', aliases: ['genero', 'generos', 'genre', 'genres', 'categoria', 'categorias', 'category', 'categories'] },
     { id: 'tags', label: 'Etiquetas', aliases: ['bookshelves', 'etiquetas', 'etiqueta', 'tags', 'tag', 'estanterias'] },
     { id: 'series', label: 'Saga / serie', aliases: ['series', 'serie', 'saga', 'coleccion'] },
-    { id: 'format', label: 'Formato', aliases: ['format', 'formato', 'binding', 'tipo'] },
+    { id: 'format', label: 'Formato', aliases: ['format', 'formato', 'binding', 'tipodelibro', 'tipolibro', 'tipo'] },
     { id: 'year', label: 'Año', aliases: ['yearpublished', 'originalpublicationyear', 'ano', 'anio', 'year', 'publicacion', 'anopublicacion'] },
   ];
 
@@ -90,7 +91,8 @@
     if (!s) return null;
     if (/(toread|wanttoread|quiero|pendiente|wish|porleer|deseo|porempezar|noempezado)/.test(s)) return 'wishlist';
     if (/(currently|reading|leyendo|encurso|enlectura|empezado)/.test(s)) return 'reading';
-    if (/(abandon|dnf|dejado|didnotfinish|nolo)/.test(s)) return 'abandoned';
+    if (/(abandon|dnf|dejado|deje|didnotfinish|nolo)/.test(s)) return 'abandoned';
+    if (/(^pausa|enpausa|paused|onhold)/.test(s)) return 'reading';
     if (/(^read$|leido|termin|finish|complet|acabado|hecho|done)/.test(s)) return 'completed';
     return null;
   }
@@ -100,6 +102,21 @@
     if (!n || n <= 0) return null;
     const stars = n > 5 ? n / 2 : n; // algunas apps puntúan sobre 10
     return u.clamp(Math.round(stars), 1, 5);
+  }
+
+  /** "Total de páginas" de Bookmory: "457", "Pág. 457", "100,00%" (ebook sin páginas) o "16:50:00" (duración del audiolibro). */
+  function parseSize(v) {
+    const s = String(v ?? '').trim();
+    const t = s.match(/^(\d+):(\d{1,2})(?::\d{1,2})?$/);
+    if (t) return { pages: 0, minutes: +t[1] * 60 + +t[2] };
+    if (s.includes('%')) return { pages: 0, minutes: 0 };
+    return { pages: parseInt(s.replace(/[^\d]/g, ''), 10) || 0, minutes: 0 };
+  }
+
+  /** "1/3/2024 ~ 31/3/2024" → { from, to } */
+  function parsePeriod(v) {
+    const [a, b] = String(v ?? '').split(/\s*[~–]\s*/);
+    return { from: parseDate(a), to: parseDate(b) };
   }
 
   const parseInt0 = (v) => parseInt(String(v ?? '').replace(/[^\d]/g, ''), 10) || 0;
@@ -132,16 +149,23 @@
       seriesNo = sp.seriesNo;
     }
     const isbn = LK.books.isbn.normalize(g('isbn').replace(/[="]/g, ''));
-    const totalPages = parseInt0(g('totalPages'));
-    const dateCompleted = parseDate(g('dateCompleted'));
-    const dateStarted = parseDate(g('dateStarted'));
+    const size = parseSize(g('totalPages'));
+    const totalPages = size.pages;
+    const period = map.period ? parsePeriod(g('period')) : { from: null, to: null };
+    const dateCompleted = parseDate(g('dateCompleted')) || period.to;
+    const dateStarted = parseDate(g('dateStarted')) || period.from;
     let status = parseStatus(g('status'));
     if (!status) status = dateCompleted ? 'completed' : dateStarted ? 'reading' : 'wishlist';
     let readPages = parseInt0(g('readPages'));
     if (status === 'completed' && totalPages) readPages = totalPages;
     if (totalPages) readPages = Math.min(readPages, totalPages);
-    const tags = LK.books.splitList(g('tags')).filter((t) => !/^(to-read|read|currently-reading)$/i.test(t));
+    const rawTags = g('tags');
+    const tags = (rawTags.includes('#') ? LK.books.splitList(rawTags.replace(/#/g, ',').replace(/\s+/g, ',')) : LK.books.splitList(rawTags)).filter((t) => !/^(to-read|read|currently-reading)$/i.test(t));
     const genres = LK.books.splitList(g('genres'));
+
+    let format = map.format ? parseFormat(g('format')) : 'paper';
+    if (size.minutes && format === 'paper') format = 'audio';
+    const audio = format === 'audio';
 
     return {
       title,
@@ -158,7 +182,8 @@
       tags,
       series,
       seriesNo,
-      format: map.format ? parseFormat(g('format')) : 'paper',
+      format,
+      ...(audio && size.minutes ? { totalMinutes: size.minutes, listenPos: status === 'completed' ? size.minutes : null } : {}),
       year: g('year').match(/\d{4}/)?.[0] || '',
     };
   }
@@ -274,7 +299,7 @@
                 ? `<ul class="list imp-preview">${sample
                     .map(
                       (b) => `<li><strong>${u.esc(b.title)}</strong> <span class="muted">· ${u.esc(b.author)}</span>
-                        <div class="muted small">${u.esc(LK.books.statusLabel(b.status))}${b.totalPages ? ` · ${b.totalPages} págs.` : ''}${b.rating ? ` · ${'★'.repeat(b.rating)}` : ''}${b.dateCompleted ? ` · ${u.fmtDate(b.dateCompleted)}` : ''}${b.series ? ` · ${u.esc(b.series)}${b.seriesNo ? ' #' + b.seriesNo : ''}` : ''}${b.dup ? ' · <span class="chip chip-warn">ya lo tienes</span>' : ''}</div></li>`
+                        <div class="muted small">${u.esc(LK.books.statusLabel(b.status))}${b.totalPages ? ` · ${b.totalPages} págs.` : ''}${b.totalMinutes ? ` · ${Math.floor(b.totalMinutes / 60)} h ${b.totalMinutes % 60} min de audio` : ''}${b.rating ? ` · ${'★'.repeat(b.rating)}` : ''}${b.dateCompleted ? ` · ${u.fmtDate(b.dateCompleted)}` : ''}${b.series ? ` · ${u.esc(b.series)}${b.seriesNo ? ' #' + b.seriesNo : ''}` : ''}${b.dup ? ' · <span class="chip chip-warn">ya lo tienes</span>' : ''}</div></li>`
                     )
                     .join('')}</ul>`
                 : '<p class="chip chip-warn">Elige qué columna es el título.</p>'}
@@ -366,5 +391,5 @@
   };
 
   // Para pruebas y para reutilizar desde fuera
-  LK.importer = { autoMap, convertRow, parseDate, parseStatus, splitSeries };
+  LK.importer = { autoMap, convertRow, parseDate, parseStatus, splitSeries, parseSize, parsePeriod };
 })(window.LK);

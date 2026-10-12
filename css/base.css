@@ -69,7 +69,7 @@ img { max-width: 100%; display: block; }
   backdrop-filter: blur(10px);
   border-bottom: 1px solid var(--border);
 }
-.brand { display: flex; align-items: center; gap: 0.55rem; color: var(--text); text-decoration: none; }
+.brand { flex: 0 0 auto; display: flex; align-items: center; gap: 0.55rem; color: var(--text); text-decoration: none; }
 .brand-mark {
   width: 12px; height: 18px;
   background: var(--accent);
@@ -82,7 +82,7 @@ img { max-width: 100%; display: block; }
   text-transform: var(--transform-display);
   font-weight: 700;
 }
-.player { display: flex; align-items: center; gap: 0.6rem; font-size: 0.85rem; color: var(--text); text-decoration: none; }
+.player { white-space: nowrap; flex: 0 0 auto; display: flex; align-items: center; gap: 0.6rem; font-size: 0.85rem; color: var(--text); text-decoration: none; }
 .player-level strong { color: var(--accent); }
 .xpbar {
   display: block;
@@ -99,6 +99,7 @@ img { max-width: 100%; display: block; }
 }
 
 .timer-pill {
+  margin-left: auto; white-space: nowrap; flex: 0 0 auto;
   font: inherit; font-size: 0.85rem; font-variant-numeric: tabular-nums;
   display: inline-flex; align-items: center; gap: 0.45rem;
   padding: 0.3rem 0.75rem;
@@ -409,7 +410,7 @@ details.disclosure[open] > summary { margin-bottom: 0.9rem; }
 .tabbar a[aria-current="page"] { color: var(--accent); }
 
 /* En escritorio la navegación sube a la cabecera */
-@media (min-width: 860px) {
+@media (min-width: 1200px) {
   body { --tabbar-h: 0px; }
   .tabbar {
     top: env(safe-area-inset-top); bottom: auto;
@@ -423,7 +424,7 @@ details.disclosure[open] > summary { margin-bottom: 0.9rem; }
     backdrop-filter: none;
     border: 0;
   }
-  .tabbar a { flex-direction: row; gap: 0.45rem; padding: 0 0.9rem; font-size: 0.88rem; }
+  .tabbar a { flex-direction: row; gap: 0.45rem; padding: 0 0.75rem; font-size: 0.88rem; white-space: nowrap; }
   .tabbar svg { width: 18px; height: 18px; }
   .tabbar a[aria-current="page"] { box-shadow: inset 0 -2px 0 var(--accent); }
   .view { padding-top: 2rem; }
@@ -466,11 +467,18 @@ dialog.modal::backdrop { background: rgba(0, 0, 0, 0.55); backdrop-filter: blur(
 /* ---------- Temporizador a pantalla completa ---------- */
 .timer-overlay {
   position: fixed; inset: 0; z-index: 50;
-  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1.25rem;
-  padding: 2rem 1.25rem calc(2rem + env(safe-area-inset-bottom));
+  display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 1.25rem;
+  padding: calc(3.5rem + env(safe-area-inset-top)) 1.25rem calc(2rem + env(safe-area-inset-bottom));
+  overflow-y: auto; overscroll-behavior: contain;
   background: var(--bg);
   text-align: center;
 }
+/* Centrado vertical que no recorta el principio si el contenido no cabe: se puede desplazar */
+.timer-overlay::before, .timer-overlay::after { content: ""; flex: 1 1 0; min-height: 0; }
+.timer-overlay > * { flex-shrink: 0; max-width: 100%; }
+@media (max-height: 760px) { .timer-overlay .b3d { --w: 112px; --h: 168px; } .timer-overlay { gap: 0.9rem; } }
+body:has(.timer-overlay) .toast { bottom: auto; top: calc(0.8rem + env(safe-area-inset-top)); transform: translate(-50%, -1rem); z-index: 70; }
+body:has(.timer-overlay) .toast.show { transform: translate(-50%, 0); }
 .timer-overlay .b3d-scene { padding: 0.5rem 0 1.75rem; }
 .timer-overlay .b3d { --w: 150px; --h: 225px; }
 .timer-book-title { font-family: var(--font-display); font-size: 1.1rem; max-width: 30ch; }
@@ -506,3 +514,10 @@ body {
 .chart .h2 { fill: var(--heat-2); } .heat-legend .h2 { background: var(--heat-2); }
 .chart .h3 { fill: var(--heat-3); } .heat-legend .h3 { background: var(--heat-3); }
 .chart .h4 { fill: var(--heat-4); } .heat-legend .h4 { background: var(--heat-4); }
+
+.timer-pill:not([hidden]) + .player { margin-left: 0; }
+.timer-pill:not([hidden]) + .player .xpbar { display: none; } /* con el reloj en marcha, la barra de nivel cede sitio */
+
+/* Temas agrupados en oscuros y claros */
+.theme-groups { margin: 0; padding: 0; border: 0; display: grid; gap: 1.1rem; }
+.theme-group h3 { margin: 0 0 0.6rem; font-size: 0.95rem; color: var(--text-muted); }

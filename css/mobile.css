@@ -1,5 +1,5 @@
 /* ==========================================================
-   MÓVIL  (solo pantallas de teléfono, hasta 859 px)
+   MÓVIL  (solo pantallas de teléfono, hasta 1199 px)
    Convierte la web en algo que se siente como una app:
    títulos grandes, tarjetas redondeadas y respiradas, botones
    de 52 px, barra inferior flotante, ventanas que suben desde
@@ -7,7 +7,7 @@
    En escritorio no cambia nada.
    ========================================================== */
 
-@media (max-width: 859px) {
+@media (max-width: 1199px) {
 
   /* El tema Terminal conserva color y brillo, pero en el móvil usa la
      letra del sistema: la monoespaciada ocupa demasiado y comprime todo. */
@@ -42,6 +42,11 @@
   .player { gap: 0.5rem; padding: 0.3rem 0.65rem; border-radius: 99px; background: var(--surface); border: 1px solid var(--border); }
   .xpbar { width: 56px; height: 5px; }
 
+  /* Con el reloj en marcha la cabecera cede espacio para que nada se pise */
+  .topbar { gap: 0.5rem; }
+  .timer-pill { padding: 0.35rem 0.8rem; font-weight: 600; }
+  .topbar:has(.timer-pill:not([hidden])) .brand-name { display: none; }
+
   /* ---------- Contenido ---------- */
   .view { padding: 0.4rem 1.1rem calc(var(--tabbar-h) + 2.5rem + env(safe-area-inset-bottom)); }
   .stack > * + * { margin-top: 1.1rem; }
@@ -53,7 +58,9 @@
 
   /* ---------- Tarjetas: más aire, menos marco ---------- */
   .card { padding: 1.15rem; border-radius: var(--radius-lg); border-color: color-mix(in srgb, var(--border) 70%, transparent); box-shadow: 0 6px 22px rgba(0, 0, 0, 0.12); }
+  .card-head { flex-wrap: wrap; gap: 0.5rem 0.75rem; }
   .card-head h2 { font-size: 1.15rem; }
+  .seg-mini button { min-height: 40px; padding-inline: 0.9rem; }
 
   /* ---------- Botones e inputs para el pulgar ---------- */
   .btn { min-height: 48px; padding: 0.55rem 1.1rem; border-radius: 14px; font-size: 1rem; transition: transform 0.12s, box-shadow 0.2s, background 0.2s; }
@@ -138,10 +145,11 @@
   /* ---------- Resto de pantallas ---------- */
   .player-card { padding: 1.2rem; }
   .ach, .ach-grid { gap: 0.75rem; }
-  .theme-grid { gap: 0.75rem; }
+  .theme-grid { gap: 0.75rem; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .theme-option { padding: 0.65rem; }
   .timer-overlay { padding-inline: 1.4rem; }
 }
 
-@media (max-width: 859px) and (prefers-reduced-motion: reduce) {
+@media (max-width: 1199px) and (prefers-reduced-motion: reduce) {
   dialog.modal[open], dialog.modal[open]::backdrop { animation: none; }
 }
