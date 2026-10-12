@@ -1,0 +1,147 @@
+/* ==========================================================
+   MÓVIL  (solo pantallas de teléfono, hasta 859 px)
+   Convierte la web en algo que se siente como una app:
+   títulos grandes, tarjetas redondeadas y respiradas, botones
+   de 52 px, barra inferior flotante, ventanas que suben desde
+   abajo y nada de selección de texto ni rebote en la interfaz.
+   En escritorio no cambia nada.
+   ========================================================== */
+
+@media (max-width: 859px) {
+
+  /* El tema Terminal conserva color y brillo, pero en el móvil usa la
+     letra del sistema: la monoespaciada ocupa demasiado y comprime todo. */
+  :root:not([data-theme]),
+  [data-theme="terminal"] {
+    --font-body: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --font-display: var(--font-body);
+    --transform-display: none;
+    --letter-display: -0.01em;
+    --radius: 10px;
+    --radius-lg: 20px;
+  }
+  [data-theme="biblioteca"], [data-theme="grimorio"] { --radius: 10px; --radius-lg: 20px; }
+  [data-theme="minimal"] { --radius: 12px; --radius-lg: 22px; }
+
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    --topbar-h: 52px;
+    --tabbar-h: 68px;
+    -webkit-tap-highlight-color: transparent;
+    overscroll-behavior-y: none;
+  }
+  /* La interfaz no se selecciona al tocarla; el texto de lectura sí */
+  .topbar, .tabbar, .btn, .segmented, .chip, .tile, .shelf-item, .card-head,
+  .page-head, button, summary, label.switch { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+  a, button { touch-action: manipulation; }
+
+  /* ---------- Barra superior: discreta ---------- */
+  .topbar { padding-inline: 1.1rem; border-bottom-color: transparent; background: color-mix(in srgb, var(--bg) 82%, transparent); backdrop-filter: blur(16px) saturate(1.4); -webkit-backdrop-filter: blur(16px) saturate(1.4); }
+  .brand-mark { width: 10px; height: 16px; }
+  .brand-name { font-size: 1.05rem; letter-spacing: -0.01em; }
+  .player { gap: 0.5rem; padding: 0.3rem 0.65rem; border-radius: 99px; background: var(--surface); border: 1px solid var(--border); }
+  .xpbar { width: 56px; height: 5px; }
+
+  /* ---------- Contenido ---------- */
+  .view { padding: 0.4rem 1.1rem calc(var(--tabbar-h) + 2.5rem + env(safe-area-inset-bottom)); }
+  .stack > * + * { margin-top: 1.1rem; }
+
+  h1 { font-size: 2rem; line-height: 1.1; letter-spacing: -0.02em; }
+  h2 { font-size: 1.2rem; letter-spacing: -0.01em; }
+  .page-head { margin: 0.6rem 0 1rem; align-items: center; }
+  .page-head h1 { font-size: 2.1rem; }
+
+  /* ---------- Tarjetas: más aire, menos marco ---------- */
+  .card { padding: 1.15rem; border-radius: var(--radius-lg); border-color: color-mix(in srgb, var(--border) 70%, transparent); box-shadow: 0 6px 22px rgba(0, 0, 0, 0.12); }
+  .card-head h2 { font-size: 1.15rem; }
+
+  /* ---------- Botones e inputs para el pulgar ---------- */
+  .btn { min-height: 48px; padding: 0.55rem 1.1rem; border-radius: 14px; font-size: 1rem; transition: transform 0.12s, box-shadow 0.2s, background 0.2s; }
+  .btn:active { transform: scale(0.97); }
+  .btn-lg { min-height: 56px; border-radius: 16px; font-size: 1.1rem; }
+  .btn-sm { min-height: 40px; padding: 0.3rem 0.9rem; border-radius: 12px; }
+  .btn-icon { min-height: 44px; min-width: 44px; }
+  .input, .select, input[type="text"], input[type="search"], input[type="number"], input[type="url"], input[type="password"], input[type="date"], textarea, select {
+    font-size: 16px; /* evita el zoom automático de iOS al enfocar */
+    min-height: 50px; border-radius: 14px; padding-inline: 1rem;
+  }
+  textarea { min-height: 96px; padding-block: 0.7rem; }
+  .field { gap: 0.4rem; }
+  .field > span { font-size: 0.9rem; }
+
+  /* ---------- Hoy ---------- */
+  .today { padding: 1.15rem; gap: 1rem; }
+  .today-kicker { font-size: 0.8rem; letter-spacing: 0.04em; text-transform: none; font-weight: 600; }
+  .today-status { font-size: 1.3rem; font-weight: 700; line-height: 1.2; }
+  .today-top { gap: 1.1rem; }
+
+  /* ---------- Biblioteca ---------- */
+  .lib-tools { gap: 0.6rem; flex-wrap: wrap; }
+  .lib-tools .input { flex: 1 1 100%; min-width: 0; }
+  .lib-tools .btn { flex: 1 1 100%; }
+  .page-head > label { font-size: 0; gap: 0; flex: 0 0 auto; }
+  .page-head > label .select { font-size: 0.95rem; min-height: 42px; width: auto; border-radius: 99px; padding-inline: 1rem; }
+  #btn-scan, a[href="#/importar"].btn { width: 100%; justify-content: center; }
+
+  .segmented { gap: 0.4rem; padding: 0.15rem 0.1rem 0.35rem; margin-inline: -1.1rem; padding-inline: 1.1rem; scroll-padding-inline: 1.1rem; background: none; border: 0; scroll-snap-type: x proximity; }
+  .segmented a { min-height: 42px; display: inline-flex; align-items: center; padding: 0 1rem; border-radius: 99px; border: 1px solid var(--border); background: var(--surface); box-shadow: none !important; white-space: nowrap; flex: 0 0 auto; scroll-snap-align: start; font-size: 0.95rem; }
+  .segmented a[aria-current="page"] { background: var(--accent); border-color: var(--accent); color: var(--accent-contrast); font-weight: 700; }
+  .segmented .count { opacity: 0.75; margin-left: 0.4rem; font-size: 0.85em; }
+
+  .chips { gap: 0.45rem; }
+  .chip { padding: 0.28rem 0.7rem; border-radius: 99px; font-size: 0.85rem; }
+  .tagbar { flex-wrap: nowrap; overflow-x: auto; margin-inline: -1.1rem; padding: 0.1rem 1.1rem 0.4rem; scrollbar-width: none; }
+  .tagbar::-webkit-scrollbar { display: none; }
+  .tagbar .chip { flex: 0 0 auto; }
+
+  /* Libro destacado: portada a la izquierda, datos a la derecha */
+  .hero, .detail-top { gap: 1.1rem; }
+  .hero-actions { display: grid; grid-template-columns: 1fr; gap: 0.6rem; }
+  .hero-actions .btn { width: 100%; }
+  .hero-kicker { font-size: 0.8rem; letter-spacing: 0.03em; text-transform: none; font-weight: 600; }
+
+  /* Estantería: portadas más grandes, 3 por fila sin apretar */
+  .shelf { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.1rem 0.7rem; --mini-h: 150px; }
+  .shelf-item .b3d { --w: 92px; --h: 138px; }
+
+  /* ---------- Barra inferior flotante ---------- */
+  .tabbar {
+    left: 0.8rem; right: 0.8rem; bottom: calc(0.6rem + env(safe-area-inset-bottom));
+    height: 64px; padding: 0.3rem;
+    border: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
+    border-radius: 24px;
+    background: color-mix(in srgb, var(--surface) 82%, transparent);
+    backdrop-filter: blur(18px) saturate(1.5); -webkit-backdrop-filter: blur(18px) saturate(1.5);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  }
+  .tabbar a { border-radius: 18px; gap: 0.15rem; font-size: 0.7rem; font-weight: 600; position: relative; transition: color 0.2s, background 0.25s, transform 0.12s; }
+  .tabbar a:active { transform: scale(0.94); }
+  .tabbar a[aria-current="page"] { background: color-mix(in srgb, var(--accent) 16%, transparent); }
+  .tabbar svg { width: 24px; height: 24px; }
+  .toast { bottom: calc(var(--tabbar-h) + 1.4rem + env(safe-area-inset-bottom)); border-radius: 16px; }
+
+  /* ---------- Ventanas: suben desde abajo como en iOS ---------- */
+  dialog.modal, dialog.modal.modal-wide {
+    width: 100%; max-width: none; margin: auto 0 0; max-height: 92dvh;
+    border-radius: 26px 26px 0 0; border-width: 1px 0 0;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  dialog.modal[open] { animation: lk-sheet 0.32s cubic-bezier(0.2, 0.9, 0.25, 1); }
+  dialog.modal[open]::backdrop { animation: lk-fade 0.3s; }
+  dialog.modal::before { content: ""; display: block; width: 40px; height: 5px; border-radius: 99px; background: var(--border); margin: 0.65rem auto 0; }
+  .modal-body { padding: 1rem 1.25rem 1.4rem; }
+  .modal-actions { display: grid; grid-template-columns: 1fr; gap: 0.6rem; }
+  .modal-actions .btn { width: 100%; }
+  @keyframes lk-sheet { from { transform: translateY(100%); } to { transform: none; } }
+  @keyframes lk-fade { from { opacity: 0; } to { opacity: 1; } }
+
+  /* ---------- Resto de pantallas ---------- */
+  .player-card { padding: 1.2rem; }
+  .ach, .ach-grid { gap: 0.75rem; }
+  .theme-grid { gap: 0.75rem; }
+  .timer-overlay { padding-inline: 1.4rem; }
+}
+
+@media (max-width: 859px) and (prefers-reduced-motion: reduce) {
+  dialog.modal[open], dialog.modal[open]::backdrop { animation: none; }
+}
