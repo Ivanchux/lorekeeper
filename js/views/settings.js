@@ -382,7 +382,8 @@
               else ctl.abort();
             }, { signal: ctl.signal });
             if ($coversMsg.isConnected) {
-              $coversMsg.textContent = `Listo: ${r.found} de ${r.total} portadas encontradas${r.found < r.total ? '. El resto no está en los catálogos; puedes ponerla a mano desde la ficha del libro.' : '.'}`;
+              const limited = LK.api.blocked().includes('www.googleapis.com');
+              $coversMsg.textContent = `Listo: ${r.found} de ${r.total} portadas encontradas${r.found < r.total ? (limited ? '. Google Books ha limitado las peticiones por hoy: vuelve a pulsar el botón más tarde para probar con las que faltan.' : '. El resto no está en los catálogos; puedes ponerla a mano desde la ficha del libro.') : '.'}`;
               $covers.textContent = r.found < r.total ? `🖼 Reintentar las que faltan (${r.total - r.found})` : '🖼 Todas las portadas listas';
             }
             LK.app.refreshPlayer?.();

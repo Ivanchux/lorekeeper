@@ -14,7 +14,7 @@
     const attempts = patient ? 4 : 1;
     let lastErr;
     for (let i = 0; i < attempts; i++) {
-      if (patient) await pace();
+      if (patient) await pace(new URL(url).hostname, url.includes('itunes') ? 1500 : 400);
       const ctrl = new AbortController();
       const t = setTimeout(() => ctrl.abort(), ms);
       try {
@@ -30,6 +30,7 @@
         clearTimeout(t);
       }
     }
+    if (patient && /HTTP 429/.test(lastErr?.message || '')) blockedUntil[new URL(url).hostname] = Date.now() + 10 * 60 * 1000;
     throw lastErr;
   }
 
@@ -37,12 +38,16 @@
 
   // Cuando se completan muchos libros seguidos, los catálogos limitan las peticiones
   // (error 429) y el libro se queda sin portada. Se espacian para evitarlo.
-  let nextSlot = 0;
-  async function pace(gap = 400) {
-    const slot = Math.max(Date.now(), nextSlot);
-    nextSlot = slot + gap;
+  const nextSlot = {};
+  async function pace(host = 'default', gap = 400) {
+    const slot = Math.max(Date.now(), nextSlot[host] || 0);
+    nextSlot[host] = slot + gap;
     if (slot > Date.now()) await sleep(slot - Date.now());
   }
+
+  // Si un catálogo se niega a seguir (cuota diaria), se deja de insistir un rato
+  const blockedUntil = {};
+  const isBlocked = (host) => (blockedUntil[host] || 0) > Date.now();
 
   /** Si el texto parece un ISBN, se busca como tal. */
   function normalizeQuery(q) {
@@ -71,6 +76,7 @@
         genres: v.categories || [],
         year: (v.publishedDate || '').slice(0, 4),
         description: v.description || '',
+        publisher: v.publisher || '',
         isbn: (ids.find((i) => i.type === 'ISBN_13') || ids[0] || {}).identifier || '',
       };
     });
@@ -79,7 +85,7 @@
   async function openLibrary(query, patient = false) {
     const { q, isbn } = normalizeQuery(query);
     const param = isbn ? `isbn=${q}` : q.startsWith('\u0000') ? q.slice(1) : `q=${encodeURIComponent(q)}`;
-    const fields = 'key,title,subtitle,author_name,cover_i,number_of_pages_median,subject,first_publish_year,isbn';
+    const fields = 'key,title,subtitle,author_name,cover_i,number_of_pages_median,subject,first_publish_year,isbn,publisher';
     const data = await getJSON(`https://openlibrary.org/search.json?${param}&limit=20&fields=${fields}`, 9000, patient);
     return (data.docs || []).map((d) => ({
       id: `ol_${String(d.key || '').replace('/works/', '')}`,
@@ -92,6 +98,7 @@
       genres: (d.subject || []).slice(0, 8),
       year: d.first_publish_year ? String(d.first_publish_year) : '',
       description: '',
+      publisher: (d.publisher || [])[0] || '',
       isbn: (d.isbn || [])[0] || '',
     }));
   }
@@ -130,6 +137,60 @@
         : 'No se pudo conectar con los catálogos de libros. Inténtalo de nuevo en un momento.');
     }
     return { results: [], source: order[0][0] };
+  }
+
+  /**
+   * Apple Books / iTunes: buena fuente para audiolibros y portadas en español, sin clave.
+   * Se pide por JSONP (etiqueta <script>) para no depender de los permisos CORS.
+   */
+  let jsonpN = 0;
+  function jsonp(url, ms = 9000) {
+    return new Promise((resolve, reject) => {
+      const cb = `__lk_jsonp_${Date.now()}_${jsonpN++}`;
+      const el = document.createElement('script');
+      const done = (fn, v) => {
+        clearTimeout(t);
+        delete window[cb];
+        el.remove();
+        fn(v);
+      };
+      const t = setTimeout(() => done(reject, Object.assign(new Error('timeout'), { name: 'AbortError' })), ms);
+      window[cb] = (data) => done(resolve, data);
+      el.onerror = () => done(reject, Object.assign(new TypeError('network')));
+      el.src = `${url}&callback=${cb}`;
+      document.head.appendChild(el);
+    });
+  }
+
+  async function itunes(query, media = 'audiobook') {
+    if (isBlocked('itunes.apple.com')) throw new Error('bloqueado');
+    const entity = media === 'audiobook' ? 'audiobook' : 'ebook';
+    const url = `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&media=${media}&entity=${entity}&country=es&limit=10`;
+    let data;
+    for (let i = 0; i < 3; i++) {
+      await pace('itunes.apple.com', 1500);
+      try {
+        data = await jsonp(url);
+        break;
+      } catch (err) {
+        if (i === 2) throw err;
+        await sleep(2000 * 2 ** i);
+      }
+    }
+    return (data?.results || []).map((r) => ({
+      id: `it_${r.collectionId || r.trackId}`,
+      source: 'apple',
+      title: r.collectionName || r.trackName || '',
+      subtitle: '',
+      author: r.artistName || '',
+      coverUrl: (r.artworkUrl100 || r.artworkUrl60 || '').replace(/\/\d+x\d+(bb)?\./, '/600x600bb.'),
+      totalPages: 0,
+      genres: r.primaryGenreName ? [r.primaryGenreName] : [],
+      year: (r.releaseDate || '').slice(0, 4),
+      description: r.description || '',
+      publisher: r.copyright ? String(r.copyright).replace(/^[^A-Za-zÁ-ú]*(\d{4}\s*)?/, '') : '',
+      isbn: '',
+    }));
   }
 
   /* ---------- Completar libros (importados, sin portada…) ---------- */
@@ -183,14 +244,23 @@
     const variants = titleVariants(book.title);
     const a = String(book.author || '').split(/[,;]/)[0].trim();
     const aq = a && !/desconocido/i.test(a) ? a : '';
-    const tries = [];
-    if (isbn) tries.push(() => google(isbn, true));
-    variants.slice(0, 3).forEach((v) => tries.push(() => google(`intitle:"${v}"${aq ? ` inauthor:"${aq}"` : ''}`, true)));
-    if (variants[0]) tries.push(() => google(`${variants[0]} ${aq}`.trim(), true));
-    if (isbn) tries.push(() => openLibrary(isbn, true));
+    const first = variants[0] || '';
+    const gTry = (q) => () => (isBlocked('www.googleapis.com') ? Promise.reject(new Error('bloqueado')) : google(q, true));
+    const apple = [];
+    const media = book.format === 'audio' ? 'audiobook' : 'ebook';
+    [first, variants[1]].filter(Boolean).forEach((v, i) => apple.push(() => itunes(`${v} ${aq}`.trim(), media)));
+    if (book.format !== 'audio') apple.pop(); // en papel y ebook Apple es solo el último recurso
+    const googleTries = [];
+    if (isbn) googleTries.push(gTry(isbn));
+    variants.slice(0, 2).forEach((v) => googleTries.push(gTry(`intitle:"${v}"${aq ? ` inauthor:"${aq}"` : ''}`)));
+    googleTries.push(gTry(`${first} ${aq}`.trim()));
+    const olTries = [];
+    if (isbn) olTries.push(() => openLibrary(isbn, true));
     variants.slice(0, 2).forEach((v) =>
-      tries.push(() => openLibrary(`\u0000title=${encodeURIComponent(v)}${aq ? `&author=${encodeURIComponent(aq)}` : ''}`, true))
+      olTries.push(() => openLibrary(`\u0000title=${encodeURIComponent(v)}${aq ? `&author=${encodeURIComponent(aq)}` : ''}`, true))
     );
+    // Audiolibros: Apple primero (es donde está el audio en español). Resto: Google y Open Library primero.
+    const tries = book.format === 'audio' ? [...apple, ...olTries, ...googleTries] : [...googleTries, ...olTries, ...apple];
 
     const patch = {};
     const need = () => ({
@@ -227,6 +297,7 @@
       if (!book.description && !patch.description && hit.description) patch.description = hit.description;
       if (!book.year && !patch.year && hit.year) patch.year = hit.year;
       if (!book.isbn && !patch.isbn && hit.isbn) patch.isbn = hit.isbn;
+      if (!book.publisher && !patch.publisher && hit.publisher) patch.publisher = hit.publisher;
     }
 
     // Último recurso: la portada de Open Library por ISBN, si existe
@@ -268,5 +339,5 @@
     return { total, found };
   }
 
-  LK.api = { search, enrich, fillMissing, titleVariants };
+  LK.api = { search, enrich, fillMissing, titleVariants, blocked: () => Object.keys(blockedUntil).filter(isBlocked) };
 })(window.LK);
