@@ -211,6 +211,9 @@
           <label class="field"><span>ISBN</span><input class="input" name="isbn" value="${u.esc(book.isbn || '')}" inputmode="numeric"></label>
           <label class="field"><span>Editorial</span><input class="input" name="publisher" value="${u.esc(book.publisher || '')}"></label>
           <label class="field"><span>URL de la portada</span><input class="input" name="coverUrl" type="url" value="${u.esc(book.coverUrl)}"></label>
+          <div class="field span-all"><span>Portada desde tus fotos</span>
+            <input type="file" id="cover-file" accept="image/*" class="input">
+          </div>
           <datalist id="series-list"></datalist>
           <div class="span-all row-between">
             <button class="btn btn-primary" type="submit">Guardar cambios</button>
@@ -461,6 +464,27 @@
           }
           u.toast('Datos guardados');
           LK.app.refresh();
+        });
+
+        root.querySelector('#cover-file').addEventListener('change', async (e) => {
+          const file = e.target.files[0];
+          if (!file) return;
+          try {
+            const bmp = await createImageBitmap(file);
+            const k = Math.min(1, 600 / Math.max(bmp.width, bmp.height));
+            const cv = document.createElement('canvas');
+            cv.width = Math.round(bmp.width * k);
+            cv.height = Math.round(bmp.height * k);
+            cv.getContext('2d').drawImage(bmp, 0, 0, cv.width, cv.height);
+            const blob = await new Promise((r) => cv.toBlob(r, 'image/jpeg', 0.85));
+            await LK.db.setCoverBlob(id, blob);
+            const fresh = await LK.db.getBook(id);
+            await LK.db.saveBook({ ...fresh, hasLocalCover: true }, { silent: true });
+            u.toast('Portada guardada');
+            LK.app.refresh();
+          } catch {
+            u.toast('No se ha podido usar esa imagen', 'error');
+          }
         });
 
         root.querySelector('#btn-delete').addEventListener('click', async () => {

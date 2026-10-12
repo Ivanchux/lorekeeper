@@ -203,6 +203,7 @@
               <button class="btn btn-danger" id="btn-wipe">Borrar todo</button>
             </div>
             <p class="muted small" id="covers-msg" aria-live="polite" hidden></p>
+              <button class="btn btn-ghost" id="btn-covers-force" type="button">🔍 Diagnóstico de portadas</button>
           </section>
 
           <section class="card stack-sm">
@@ -365,7 +366,7 @@
         const $covers = root.querySelector('#btn-covers');
         const $coversMsg = root.querySelector('#covers-msg');
         LK.db.getBooks().then((bs) => {
-          const n = bs.filter((b) => !b.coverUrl).length;
+          const n = bs.filter((b) => !b.coverUrl && !b.hasLocalCover).length;
           if (n && $covers.isConnected) {
             $covers.textContent = `🖼 Buscar portadas que faltan (${n})`;
             $covers.hidden = false;
@@ -380,11 +381,15 @@
             const r = await LK.api.fillMissing(({ done, total, found }) => {
               if ($coversMsg.isConnected) $coversMsg.textContent = `Buscando… ${done} de ${total} · ${found} portadas encontradas. Puedes dejar el móvil con la pantalla encendida.`;
               else ctl.abort();
-            }, { signal: ctl.signal });
+            }, { signal: ctl.signal, force: true });
             if ($coversMsg.isConnected) {
               const limited = LK.api.blocked().includes('www.googleapis.com');
               $coversMsg.textContent = `Listo: ${r.found} de ${r.total} portadas encontradas${r.found < r.total ? (limited ? '. Google Books ha limitado las peticiones por hoy: vuelve a pulsar el botón más tarde para probar con las que faltan.' : '. El resto no está en los catálogos; puedes ponerla a mano desde la ficha del libro.') : '.'}`;
               $covers.textContent = r.found < r.total ? `🖼 Reintentar las que faltan (${r.total - r.found})` : '🖼 Todas las portadas listas';
+            }
+            if ($coversMsg.isConnected) {
+              const sum = LK.api.diagSummary();
+              if (sum.length) $coversMsg.innerHTML += `<br><small>${sum.map(u.esc).join('<br>')}</small>`;
             }
             LK.app.refreshPlayer?.();
           } finally {
@@ -392,6 +397,15 @@
           }
         });
 
+        root.querySelector('#btn-covers-force')?.addEventListener('click', async () => {
+          if (!navigator.onLine) return u.toast('Necesitas conexión', 'error');
+          const bs = (await LK.db.getBooks()).filter((b) => !b.coverUrl && !b.hasLocalCover);
+          if (!bs.length) return u.toast('No falta ninguna portada');
+          $coversMsg.hidden = false;
+          $coversMsg.textContent = 'Probando los catálogos con «' + bs[0].title + '»…';
+          const lines = await LK.api.diagnose(bs[0]);
+          $coversMsg.innerHTML = `Diagnóstico con «${u.esc(bs[0].title)}»:<br><small>${lines.map(u.esc).join('<br>')}</small>`;
+        });
         root.querySelector('#btn-export').addEventListener('click', async () => {
           const data = await LK.db.exportAll();
           u.download(`lorekeeper-${u.isoDate()}.json`, JSON.stringify(data, null, 2));

@@ -165,6 +165,22 @@
    * Avisa de los logros nuevos. La primera vez solo memoriza los que
    * ya tienes (para no llenar la pantalla de avisos al importar tus libros).
    */
+  let quiet = 0;
+  let held = [];
+  /** Silencia los avisos (p. ej. durante una importación) y devuelve una función que los resume. */
+  function hold() {
+    quiet++;
+    return async () => {
+      quiet = Math.max(0, quiet - 1);
+      if (quiet) return 0;
+      await check().catch(() => {});
+      const n = held.length;
+      held = [];
+      if (n) u.toast(`🏅 ${n} logro${n === 1 ? '' : 's'} desbloqueado${n === 1 ? '' : 's'}`, 'level');
+      return n;
+    };
+  }
+
   async function check() {
     const profile = await LK.db.getProfile();
     const list = await compute();
@@ -179,10 +195,14 @@
     const showRpg = LK.prefs.get('rpg');
     for (const a of fresh) {
       if (a.rpg && !showRpg) continue;
+      if (quiet) {
+        held.push(a);
+        continue;
+      }
       u.toast(`${a.icon} Logro: ${a.name}`, 'level');
     }
     return fresh;
   }
 
-  LK.ach = { DEFS, compute, check, streak, longestStreak };
+  LK.ach = { DEFS, hold, compute, check, streak, longestStreak };
 })(window.LK);

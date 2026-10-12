@@ -329,6 +329,12 @@
     }
   };
 
+  /** Guarda una portada elegida a mano (Blob de imagen). */
+  db.setCoverBlob = async (bookId, blob) => {
+    await A.put('covers', { bookId, blob });
+    revokeCover(bookId);
+  };
+
   /** Olvida la portada guardada (p. ej. al cambiar la URL). */
   db.clearCover = async (bookId) => {
     await A.del('covers', bookId);

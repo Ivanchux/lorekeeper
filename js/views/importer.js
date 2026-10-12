@@ -364,38 +364,55 @@
 
           if (!enrich || !records.length) return done($prog, records.length, 0, 0, updates.length);
 
-          $prog.innerHTML = '<div class="progress progress-lg"><span style="width:0%"></span></div><p class="muted small" id="imp-ptext"></p>';
+          $prog.innerHTML = `<div class="progress progress-lg"><span style="width:2%"></span></div>
+            <p class="muted small" id="imp-ptext">Completando datos… 0 de ${records.length}</p>
+            <p class="muted small" id="imp-ptitle"></p>`;
           const bar = $prog.querySelector('.progress span');
           const text = $prog.querySelector('#imp-ptext');
+          const ttl = $prog.querySelector('#imp-ptitle');
+          const release = LK.ach.hold();
           let i = 0;
           let n = 0;
           let improved = 0;
+          let covers = 0;
+          const paint = () => {
+            bar.style.width = `${Math.max(2, Math.round((n / records.length) * 100))}%`;
+            text.textContent = `Completando datos… ${n} de ${records.length} · ${covers} portadas`;
+          };
           const worker = async () => {
             while (i < records.length) {
               const book = records[i++];
               if (!document.body.contains($prog)) return; // se salió de la pantalla
-              const patch = await LK.api.enrich(book);
-              if (patch) {
-                Object.assign(book, patch);
-                await LK.db.saveBook(book, { silent: true });
-                if (patch.coverUrl) LK.db.cacheCover(book.id, patch.coverUrl);
-                improved++;
-              }
+              ttl.textContent = book.title;
+              try {
+                const { patch, answered } = await LK.api.enrichDetailed(book);
+                const upd = { ...(patch || {}) };
+                if (answered && !patch?.coverUrl) upd.coverTriedAt = Date.now();
+                if (Object.keys(upd).length) {
+                  Object.assign(book, upd);
+                  await LK.db.saveBook(book, { silent: true });
+                  if (patch?.coverUrl) {
+                    covers++;
+                    LK.db.cacheCover(book.id, patch.coverUrl);
+                  }
+                  if (patch) improved++;
+                }
+              } catch {}
               n++;
-              bar.style.width = `${Math.round((n / records.length) * 100)}%`;
-              text.textContent = `Completando datos… ${n} de ${records.length}`;
+              paint();
             }
           };
-          await Promise.all([worker(), worker()]);
+          await Promise.all([worker(), worker(), worker()]);
           LK.app.refreshPlayer();
-          if (document.body.contains($prog)) done($prog, records.length, improved, 1, updates.length);
+          await release();
+          if (document.body.contains($prog)) done($prog, records.length, improved, 1, updates.length, covers);
         }
 
-        function done($prog, total, improved, enriched, updated = 0) {
+        function done($prog, total, improved, enriched, updated = 0, covers = 0) {
           $prog.innerHTML = `
             <div class="card banner-ok">
               <strong>✓ ${total} libros importados${updated ? ` y ${updated} completados` : ''}</strong>
-              ${enriched ? `<p class="small">${improved} se han completado con datos de internet.</p>` : ''}
+              ${enriched ? `<p class="small">${improved} se han completado con datos de internet · ${covers} portadas encontradas.</p>${covers < total ? '<p class="muted small">Las que falten: Ajustes → «Buscar portadas que faltan», o pon la portada a mano desde la ficha del libro.</p>' : ''}` : ''}
               <div class="row"><a class="btn btn-primary" href="#/biblioteca/all">Ver mi biblioteca</a></div>
             </div>`;
           u.toast(`${total} libros importados`);

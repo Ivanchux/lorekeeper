@@ -10,7 +10,7 @@
    Sube CACHE_VERSION cada vez que cambies archivos de APP_SHELL.
    ========================================================== */
 
-const CACHE_VERSION = 'lk-v11';
+const CACHE_VERSION = 'lk-v12';
 const COVERS_CACHE = 'lk-covers';
 
 const APP_SHELL = [
@@ -61,7 +61,7 @@ const APP_SHELL = [
 ];
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(caches.open(CACHE_VERSION).then((cache) => cache.addAll(APP_SHELL)));
+  event.waitUntil(caches.open(CACHE_VERSION).then((cache) => cache.addAll(APP_SHELL.map((f) => new Request(f, { cache: 'reload' })))));
   self.skipWaiting();
 });
 
@@ -84,8 +84,9 @@ self.addEventListener('fetch', (event) => {
   // Archivos propios: red primero (para recibir cambios) y caché si no hay conexión
   if (url.origin === self.location.origin) {
     event.respondWith(
-      fetch(request)
+      fetch(request, { cache: 'no-cache' })
         .then((res) => {
+          if (!res.ok) throw new Error('http');
           const copy = res.clone();
           caches.open(CACHE_VERSION).then((c) => c.put(request, copy));
           return res;
