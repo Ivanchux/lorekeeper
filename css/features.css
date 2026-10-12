@@ -193,3 +193,56 @@ a.chip { text-decoration: none; }
 .btn { max-width: 100%; white-space: normal; text-align: center; }
 .today > .btn { display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.2; }
 .today > .btn .cta-sub { margin-top: 0.1rem; }
+
+/* ==========================================================
+   AUDIOLIBROS: formulario de escucha, velocidades y temporizador
+   ========================================================== */
+
+dialog.modal { max-height: calc(100dvh - 2rem); overflow-y: auto; overscroll-behavior: contain; }
+dialog.modal.modal-wide { width: min(560px, calc(100% - 1.5rem)); }
+
+/* Horas y minutos con botones para sumar o restar */
+.tf-row { display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; }
+.tf-box { position: relative; display: block; flex: 1 1 92px; min-width: 84px; max-width: 150px; }
+.tf-box .input { padding-right: 2.4rem; text-align: right; font-variant-numeric: tabular-nums; font-size: 1.15rem; min-height: 48px; }
+.tf-box i { position: absolute; right: 0.7rem; top: 50%; transform: translateY(-50%); font-style: normal; color: var(--text-muted); font-size: 0.85rem; pointer-events: none; }
+.tf-step {
+  font: inherit; font-size: 0.9rem; font-variant-numeric: tabular-nums;
+  min-width: 52px; min-height: 48px;
+  border: 1px solid var(--border); border-radius: var(--radius);
+  background: var(--surface-2); color: var(--text);
+  cursor: pointer;
+}
+.tf-step:hover { border-color: var(--accent); }
+.tf-step:active { background: var(--accent); color: var(--accent-contrast); }
+.field.tf small { margin-top: 0.1rem; }
+
+.audio-form .chips-pick { margin-top: -0.15rem; }
+.audio-hint { min-height: 1.4em; margin: 0; color: var(--accent); }
+.audio-hint:empty { min-height: 0; }
+.audio-chips { margin-top: 0.5rem; }
+.audio-edit { display: grid; gap: 0.75rem; padding: 0.75rem; border: 1px dashed var(--border); border-radius: var(--radius-lg); }
+
+/* Velocidades: una fila que se desliza en pantallas estrechas */
+.speed-pills { display: flex; gap: 0.35rem; overflow-x: auto; padding: 0.15rem 0 0.35rem; scrollbar-width: none; }
+.speed-pills::-webkit-scrollbar { display: none; }
+.speed-pill {
+  flex: 0 0 auto;
+  font: inherit; font-size: 0.9rem; font-variant-numeric: tabular-nums;
+  min-height: 40px; padding: 0.3rem 0.8rem;
+  border: 1px solid var(--border); border-radius: 99px;
+  background: var(--surface-2); color: var(--text);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s, transform 0.2s var(--ease-spring, ease);
+}
+.speed-pill:hover { border-color: var(--accent); }
+.speed-pill:active { transform: scale(0.94); }
+.speed-pill[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-contrast); font-weight: 700; }
+
+/* Temporizador de audio */
+.timer-live { font-family: var(--font-display); font-size: 1.05rem; color: var(--text); margin-top: -0.5rem; font-variant-numeric: tabular-nums; }
+.timer-speed { display: grid; justify-items: center; gap: 0.2rem; max-width: 100%; }
+.timer-speed .speed-pills { max-width: min(100vw - 2rem, 420px); }
+
+/* La insignia de formato, dentro del texto del libro destacado, va en línea (no flotando sobre el borde) */
+.hero-kicker .fmt-badge { position: static; display: inline-grid; vertical-align: middle; margin-left: 0.35rem; width: 22px; height: 22px; }

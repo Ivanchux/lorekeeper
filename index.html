@@ -20,6 +20,7 @@
       r.style.setProperty('--font-scale', p.font || 1);
       r.dataset.rpg = p.rpg === false ? 'off' : 'on';
       r.dataset.easy = p.easy ? 'on' : 'off';
+      r.dataset.motion = p.motion === false ? 'off' : 'on';
     } catch (e) {}
   </script>
 
@@ -27,6 +28,7 @@
   <link rel="stylesheet" href="css/base.css">
   <link rel="stylesheet" href="css/book3d.css">
   <link rel="stylesheet" href="css/features.css">
+  <link rel="stylesheet" href="css/motion.css">
 </head>
 <body>
   <header class="topbar">
@@ -84,11 +86,13 @@
   <script src="js/books.js" defer></script>
   <script src="js/storage.js" defer></script>
   <script src="js/rpg.js" defer></script>
+  <script src="js/audio.js" defer></script>
   <script src="js/achievements.js" defer></script>
   <script src="js/summary.js" defer></script>
   <script src="js/theme.js" defer></script>
   <script src="js/api.js" defer></script>
   <script src="js/book3d.js" defer></script>
+  <script src="js/fx.js" defer></script>
   <script src="js/charts.js" defer></script>
   <script src="js/ui.js" defer></script>
   <script src="js/cards.js" defer></script>

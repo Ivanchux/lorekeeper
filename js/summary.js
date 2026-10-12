@@ -27,6 +27,11 @@
     const pages = inYear.reduce((a, s) => a + (s.pagesRead || 0), 0);
     const minutes = inYear.reduce((a, s) => a + (s.durationMinutes || 0), 0);
     const days = new Set(inYear.filter((s) => (s.pagesRead || 0) > 0 || (s.durationMinutes || 0) > 0).map((s) => s.date));
+    const byId = new Map(books.map((b) => [b.id, b]));
+    const audioMinutes = inYear.filter((s) => LK.audio.isAudioSession(s, byId)).reduce((a, s) => a + (s.durationMinutes || 0), 0);
+    const paged = inYear.filter((s) => s.durationMinutes > 0 && s.pagesRead > 0);
+    const pagedMinutes = paged.reduce((a, s) => a + s.durationMinutes, 0);
+    const pagedPages = paged.reduce((a, s) => a + s.pagesRead, 0);
 
     const pagesByMonth = Array(12).fill(0);
     inYear.forEach((s) => (pagesByMonth[Number(s.date.slice(5, 7)) - 1] += s.pagesRead || 0));
@@ -78,7 +83,9 @@
       topAuthor: topAuthorEntry && topAuthorEntry[1] >= 2 ? { name: topAuthorEntry[0], count: topAuthorEntry[1] } : null,
       formats,
       topAttr: topAttr ? { id: topAttr[0], count: topAttr[1] } : null,
-      pace: minutes ? Math.round((inYear.filter((s) => s.durationMinutes > 0).reduce((a, s) => a + (s.pagesRead || 0), 0) / minutes) * 60) : 0,
+      audioMinutes,
+      // Ritmo de lectura: solo cuentan las sesiones con páginas (el audio no tiene)
+      pace: pagedMinutes ? Math.round((pagedPages / pagedMinutes) * 60) : 0,
       empty: !finishedBooks.length && !inYear.length,
     };
   }

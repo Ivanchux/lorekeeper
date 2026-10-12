@@ -14,7 +14,7 @@
     const c = 2 * Math.PI * r;
     const off = c * (1 - u.clamp(pct, 0, 100) / 100);
     return `
-      <svg class="ring" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" role="img" aria-label="${u.esc(title)}">
+      <svg class="ring" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" style="--c:${c.toFixed(1)}" role="img" aria-label="${u.esc(title)}">
         <circle cx="${size / 2}" cy="${size / 2}" r="${r}" fill="none" stroke="var(--border)" stroke-width="${stroke}"/>
         <circle cx="${size / 2}" cy="${size / 2}" r="${r}" fill="none" stroke="var(--accent)" stroke-width="${stroke}" stroke-linecap="round"
           stroke-dasharray="${c.toFixed(1)}" stroke-dashoffset="${off.toFixed(1)}" transform="rotate(-90 ${size / 2} ${size / 2})"/>

@@ -215,7 +215,7 @@
     const stats = [
       [String(summary.finished), summary.finished === 1 ? 'libro leído' : 'libros leídos'],
       [u.fmtNum(summary.pages), 'páginas'],
-      [summary.hours >= 1 ? `${Math.round(summary.hours)} h` : `${Math.round(summary.minutes)} min`, 'leyendo'],
+      [summary.hours >= 1 ? `${Math.round(summary.hours)} h` : `${Math.round(summary.minutes)} min`, summary.audioMinutes ? 'de lectura y audio' : 'leyendo'],
       [`${summary.bestStreak}`, summary.bestStreak === 1 ? 'día de racha' : 'días de racha'],
     ];
     stats.forEach(([big, small], i) => {

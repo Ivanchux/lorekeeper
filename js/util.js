@@ -138,7 +138,10 @@ window.LK = window.LK || {};
     toastBusy = true;
     el.textContent = next.msg;
     el.dataset.type = next.type;
+    el.classList.remove('show');
+    void el.offsetWidth; // reinicia la animación si es seguido a otro aviso
     el.classList.add('show');
+    if (next.type === 'level') LK.fx?.confetti(); // nivel, libro terminado o logro
     setTimeout(
       () => {
         el.classList.remove('show');

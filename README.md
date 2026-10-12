@@ -9,7 +9,9 @@ Hecho con HTML, CSS y JavaScript puros, sin frameworks. Se instala como app (PWA
 **Leer**
 - **Hoy:** meta diaria (minutos o páginas) con anillo de progreso, racha y un botón grande de «Seguir leyendo».
 - **Temporizador que sigue en segundo plano:** puedes salir de la app o apagar la pantalla; el reloj usa la hora real. Aviso opcional en la barra de notificaciones con **Pausar / Terminar**, tiempo en el título y protección si te dejas el reloj en marcha horas.
-- **Registrar sesiones** por páginas o por porcentaje, y **audiolibros** por tiempo escuchado. Atajos de 15/30/45/60/90 min.
+- **Registrar sesiones** por páginas o por porcentaje. Atajos de 15/30/45/60/90 min.
+- **Audiolibros de verdad**: tiempo real escuchado (horas y minutos), **velocidad** (0,75× a 3×), punto de inicio y punto final del audio, que se pueden dar como *posición*, *«me quedan»* (lo que enseñan Audible o Storytel) o *porcentaje*. Capítulo opcional, «vas por…» en vivo con el reloj, progreso por posición, ritmo medio y logros propios. Pensado para quien escucha mientras hace otras cosas.
+- **Libro 3D con el color de la portada** (lomo, contraportada, cantos y brillo) y **animaciones** por toda la app (entradas escalonadas, barras y números que se llenan, confeti al terminar un libro). Se apagan con «Reducir movimiento» del sistema o con el interruptor de Ajustes.
 
 **Biblioteca**
 - Estanterías (Leyendo, Pendientes, Leídos, Abandonados), buscador interno, orden, libro 3D que se arrastra.
@@ -60,10 +62,10 @@ Para el móvil hace falta publicarla con https: GitHub Pages, Cloudflare Pages o
 
 ```
 ├── index.html, manifest.webmanifest, sw.js
-├── css/        themes.css · base.css · book3d.css · features.css
+├── css/        themes.css · base.css · book3d.css · features.css · motion.css
 ├── js/
-│   ├── util, prefs, books, storage, rpg, achievements, summary
-│   ├── theme, api, book3d, charts, ui, cards
+│   ├── util, prefs, books, storage, rpg, audio, achievements, summary
+│   ├── theme, api, book3d, fx, charts, ui, cards
 │   ├── csv (CSV y XLSX), scanner, ocr, sync, reminder, timer, onboarding
 │   ├── views/  library · search · book · stats · settings · importer · extras
 │   ├── app.js  (arranque y rutas)

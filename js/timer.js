@@ -21,6 +21,7 @@
   const u = LK.util;
   const KEY = 'lk-timer';
   const FORGOT_MS = 3 * 3600 * 1000; // a partir de 3 h se pregunta si sigue leyendo
+  const FORGOT_AUDIO_MS = 6 * 3600 * 1000; // en audio, 6 h (se escucha haciendo otras cosas)
   const TITLE = 'LoreKeeper';
 
   let overlay = null;
@@ -44,6 +45,16 @@
     } catch {}
   };
   const elapsed = (s) => s.accMs + (s.running ? Date.now() - s.startedAt : 0);
+  /** Audio: lo avanzado del libro (ms) = tiempo real × velocidad, tramo a tramo. */
+  const contentMs = (s) => (s.accContent || 0) + (s.running ? (Date.now() - s.startedAt) * (s.speed || 1) : 0);
+  /** Pasa el tramo en marcha a los acumulados (al pausar, terminar o cambiar de velocidad). */
+  function foldRunning(s) {
+    if (!s.running) return;
+    const now = Date.now();
+    s.accMs += now - s.startedAt;
+    s.accContent = (s.accContent || 0) + (now - s.startedAt) * (s.speed || 1);
+    s.startedAt = now;
+  }
   const hhmm = (ms) => new Date(ms).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
 
   /* ---------- Pantalla encendida ---------- */
@@ -90,7 +101,7 @@
       ? `En marcha desde las ${hhmm(s.startedAt - s.accMs)}. Puedes seguir en otra app: el reloj no se para.`
       : `En pausa · ${u.fmtClock(elapsed(s))} acumulados`;
     try {
-      await reg.showNotification(`${s.running ? '📖 Leyendo' : '⏸ En pausa'}: ${s.title}`, {
+      await reg.showNotification(`${s.running ? (s.audio ? '🎧 Escuchando' : '📖 Leyendo') : '⏸ En pausa'}: ${s.title}`, {
         body,
         tag: 'lk-timer',
         icon: 'icons/icon-192.png',
@@ -159,7 +170,21 @@
     }
     const isNew = !load();
     if (isNew) {
-      store({ bookId: book.id, title: book.title, startPage: book.readPages || 0, startedAt: Date.now(), accMs: 0, running: true });
+      const audio = LK.books.isAudio(book);
+      // Audio: punto del libro donde empiezas y velocidad habitual de este libro
+      const startPos = audio ? LK.audio.position(book, await LK.db.getSessionsByBook(book.id)) : 0;
+      store({
+        bookId: book.id,
+        title: book.title,
+        startPage: book.readPages || 0,
+        startedAt: Date.now(),
+        accMs: 0,
+        running: true,
+        audio,
+        startPos,
+        speed: audio ? book.speed || 1 : 1,
+        accContent: 0,
+      });
     }
     if (book.status !== 'reading') {
       book.status = 'reading';
@@ -187,38 +212,53 @@
     const src = await LK.db.coverSrc(book);
     const audio = LK.books.isAudio(book);
     const offerNotify = canNotify() && Notification.permission !== 'granted' && Notification.permission !== 'denied';
+    const total = book.totalMinutes || 0;
 
     overlay = document.createElement('div');
     overlay.className = 'timer-overlay';
     overlay.setAttribute('role', 'dialog');
     overlay.setAttribute('aria-modal', 'true');
-    overlay.setAttribute('aria-label', 'Sesión de lectura');
+    overlay.setAttribute('aria-label', audio ? 'Sesión de escucha' : 'Sesión de lectura');
+    overlay.dataset.audio = audio ? '1' : '0';
     overlay.innerHTML = `
       <button class="btn btn-ghost btn-sm timer-close" data-act="min">Minimizar ✕</button>
       ${LK.book3d.scene(book, src)}
       <div>
         <div class="timer-book-title">${u.esc(book.title)}</div>
-        <div class="muted small">${audio ? 'Escuchando' : `Empezaste en la página ${s.startPage}`}</div>
+        ${audio
+          ? `<div class="muted small">Escuchando · empezaste en <strong id="timer-startpos">${u.fmtDuration(s.startPos || 0)}</strong>
+               <button class="btn btn-ghost btn-sm" data-act="startpos" style="min-height:28px">Cambiar</button></div>`
+          : `<div class="muted small">Empezaste en la página ${s.startPage}</div>`}
       </div>
       <div class="timer-clock" id="timer-clock" aria-live="off">00:00</div>
+      ${audio
+        ? `<div class="timer-live" id="timer-live" aria-live="off"></div>
+           <div class="timer-speed"><span class="muted small">Velocidad</span>${LK.audio.speedPills(s.speed || 1)}</div>`
+        : ''}
       <div class="timer-controls">
         <button class="btn" data-act="toggle">Pausar</button>
         <button class="btn btn-primary" data-act="finish">Terminar sesión</button>
       </div>
-      <p class="timer-tip small muted">El reloj sigue aunque salgas de la app o apagues la pantalla.</p>
+      <p class="timer-tip small muted">${audio
+        ? 'Ponte con tu audiolibro y deja esto en marcha. El reloj sigue aunque cambies de app o bloquees el móvil. Al acabar, vuelve y pulsa «Terminar sesión».'
+        : 'El reloj sigue aunque salgas de la app o apagues la pantalla.'}</p>
       ${offerNotify ? '<button class="btn btn-sm" data-act="notif">🔔 Avisarme en la barra de notificaciones</button>' : ''}
       <button class="btn btn-ghost btn-sm" data-act="discard">Descartar sesión</button>`;
+    overlay.dataset.total = String(total);
 
     document.body.appendChild(overlay);
     document.body.style.overflow = 'hidden';
     LK.book3d.spin(overlay.querySelector('.b3d-scene'), { speed: 10 });
 
     overlay.addEventListener('click', async (e) => {
+      const pill = e.target.closest('[data-speed]');
+      if (pill) return setSpeed(Number(pill.dataset.speed));
       const act = e.target.closest('[data-act]')?.dataset.act;
       if (act === 'min') minimize();
       if (act === 'toggle') toggle();
       if (act === 'finish') finish();
       if (act === 'discard') discard();
+      if (act === 'startpos') changeStartPos();
       if (act === 'notif') {
         if (await enableNotifications()) e.target.closest('[data-act]').remove();
       }
@@ -246,6 +286,13 @@
       overlay.querySelector('#timer-clock').textContent = time;
       overlay.querySelector('[data-act="toggle"]').textContent = s.running ? 'Pausar' : 'Reanudar';
       overlay.classList.toggle('paused', !s.running);
+      const live = overlay.querySelector('#timer-live');
+      if (live && s.audio) {
+        // Dónde irás ahora mismo, según la velocidad
+        const pos = Math.round((s.startPos || 0) + contentMs(s) / 60000);
+        const total = Number(overlay.dataset.total) || 0;
+        live.textContent = `Vas por ≈ ${u.fmtDuration(pos)}${total ? ` · ${Math.min(100, Math.round((pos / total) * 100))} %` : ''}`;
+      }
     }
     document.title = `${s.running ? '▶' : '⏸'} ${time} · ${TITLE}`;
     updatePill();
@@ -273,7 +320,7 @@
     const s = load();
     if (!s) return;
     if (s.running) {
-      s.accMs += Date.now() - s.startedAt;
+      foldRunning(s);
       s.running = false;
     } else {
       s.startedAt = Date.now();
@@ -284,12 +331,43 @@
     notify();
   }
 
+  /** Audio: cambia la velocidad sin perder lo ya contado. */
+  function setSpeed(v) {
+    const s = load();
+    if (!s || !v) return;
+    foldRunning(s);
+    s.speed = v;
+    store(s);
+    overlay?.querySelectorAll('[data-speed]').forEach((b) => b.setAttribute('aria-pressed', String(Number(b.dataset.speed) === v)));
+    tick();
+  }
+
+  /** Audio: corrige el punto del libro en el que empezaste. */
+  async function changeStartPos() {
+    const s = load();
+    if (!s) return;
+    const value = await LK.audio.pickTime({
+      title: 'Punto de partida',
+      label: 'Empezaste en',
+      value: s.startPos || 0,
+      hint: 'El punto del audio en el que estabas al empezar a escuchar.',
+    });
+    if (value == null) return;
+    const fresh = load();
+    if (!fresh) return;
+    fresh.startPos = value;
+    store(fresh);
+    const el = overlay?.querySelector('#timer-startpos');
+    if (el) el.textContent = u.fmtDuration(value);
+    tick();
+  }
+
   /** Pausa el reloj y abre el formulario para guardar la sesión. */
   async function finish() {
     const s = load();
     if (!s) return;
     if (s.running) {
-      s.accMs += Date.now() - s.startedAt;
+      foldRunning(s);
       s.running = false;
       store(s);
     }
@@ -297,7 +375,26 @@
     minimize();
     clearNotification();
     if (!book) return store(null);
-    logSession(book, { startPage: s.startPage, minutes: Math.max(1, Math.round(s.accMs / 60000)), fromTimer: true });
+    const minutes = Math.max(1, Math.round(s.accMs / 60000));
+    if (LK.books.isAudio(book)) {
+      LK.audio.logForm(book, {
+        fromTimer: true,
+        minutes,
+        startPos: s.startPos,
+        speed: s.speed,
+        contentMin: s.audio ? Math.round((s.accContent || 0) / 60000) : undefined,
+      });
+    } else {
+      logSession(book, { startPage: s.startPage, minutes, fromTimer: true });
+    }
+  }
+
+  /** Borra la sesión en marcha (cuando ya se ha guardado). */
+  function clearState() {
+    store(null);
+    stopTicking();
+    updatePill();
+    clearNotification();
   }
 
   async function discard() {
@@ -314,14 +411,15 @@
     const s = load();
     if (!s || !s.running || forgotOpen || Date.now() < snoozeUntil) return;
     const ms = elapsed(s);
-    if (ms < FORGOT_MS) return;
+    // Quien escucha audio mientras hace otras cosas puede estar horas: se le deja más margen
+    if (ms < (s.audio ? FORGOT_AUDIO_MS : FORGOT_MS)) return;
     forgotOpen = true;
     const d = u.modal(`
-      <h2>¿Sigues leyendo?</h2>
+      <h2>${s.audio ? '¿Sigues escuchando?' : '¿Sigues leyendo?'}</h2>
       <p>Llevas <strong>${u.fmtDuration(ms / 60000)}</strong> con el reloj en marcha en «${u.esc(s.title)}».</p>
-      <p class="muted small">Si te lo dejaste puesto, termina la sesión y corrige los minutos al guardarla.</p>
+      <p class="muted small">Si te lo dejaste puesto, termina la sesión y corrige el tiempo al guardarla.</p>
       <div class="modal-actions">
-        <button class="btn btn-ghost" data-close>Sigo leyendo</button>
+        <button class="btn btn-ghost" data-close>${s.audio ? 'Sigo escuchando' : 'Sigo leyendo'}</button>
         <button class="btn btn-primary" data-finish>Terminar y ajustar</button>
       </div>`);
     d.querySelector('[data-finish]').addEventListener('click', () => {
@@ -363,8 +461,10 @@
    * Guarda una sesión de lectura.
    * Papel/ebook: páginas (o % del libro). Audiolibro: solo minutos escuchados.
    */
-  function logSession(book, { startPage = book.readPages || 0, minutes = 30, fromTimer = false } = {}) {
-    const audio = LK.books.isAudio(book);
+  function logSession(book, { startPage = book.readPages || 0, minutes = 30, fromTimer = false, ...rest } = {}) {
+    // Los audiolibros tienen su propio formulario (posición, velocidad, capítulo…)
+    if (LK.books.isAudio(book)) return LK.audio.logForm(book, { fromTimer, minutes, ...rest });
+    const audio = false;
     const total = book.totalPages || 0;
     const canPercent = !audio && total > 0;
     let unit = canPercent && LK.prefs.get('unit') === 'percent' ? 'percent' : 'pages';
@@ -505,5 +605,5 @@
     });
   }
 
-  LK.timer = { start, open, restore, logSession, current: load, handleAction, enableNotifications, canNotify };
+  LK.timer = { start, open, restore, logSession, current: load, handleAction, enableNotifications, canNotify, clearState };
 })(window.LK);

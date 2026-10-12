@@ -26,6 +26,28 @@
   background: var(--scene-glow);
   pointer-events: none;
 }
+/* Con el color de la portada ya leído, el halo y la sombra cogen su tono */
+.b3d-scene[data-tint] { transition: --ch 0.9s ease, --cs 0.9s ease, --cl 0.9s ease; }
+.b3d-scene[data-tint]::before {
+  background: radial-gradient(closest-side, hsl(var(--ch) var(--cs) 52% / 0.34), hsl(var(--ch) var(--cs) 40% / 0.1) 60%, transparent);
+}
+.hero[data-tint], .detail-top[data-tint] { transition: --ch 0.9s ease, --cs 0.9s ease, --cl 0.9s ease; }
+.card.hero[data-tint] {
+  background-image: radial-gradient(90% 130% at 14% 50%, hsl(var(--ch) var(--cs) 45% / 0.2), transparent 70%);
+  border-color: hsl(var(--ch) var(--cs) 50% / 0.5);
+}
+.detail-top[data-tint] { position: relative; isolation: isolate; }
+.detail-top[data-tint]::before {
+  content: "";
+  position: absolute; inset: -1rem -0.75rem;
+  z-index: -1;
+  border-radius: var(--radius-lg);
+  background: radial-gradient(70% 90% at 22% 45%, hsl(var(--ch) var(--cs) 45% / 0.22), transparent 72%);
+  pointer-events: none;
+}
+.timer-overlay[data-tint] {
+  background: radial-gradient(120% 70% at 50% 18%, hsl(var(--ch) var(--cs) 30% / 0.55), var(--bg) 70%), var(--bg);
+}
 .b3d-scene::after {            /* sombra en el suelo */
   content: "";
   position: absolute;
@@ -38,11 +60,26 @@
 }
 .b3d-scene:focus-visible { outline: 2px solid var(--accent); outline-offset: -4px; border-radius: var(--radius-lg); }
 
+/* Color de la portada: LK.book3d lo cambia desde JS cuando lee la imagen.
+   Registrados como propiedades tipadas para que el cambio sea un fundido suave. */
+@property --ch { syntax: "<number>"; inherits: true; initial-value: 200; }
+@property --cs { syntax: "<percentage>"; inherits: true; initial-value: 45%; }
+@property --cl { syntax: "<percentage>"; inherits: true; initial-value: 32%; }
+
 .b3d {
   --w: 180px;
   --h: 270px;
   --d: 32px;
   --hue: 200;
+  --ch: var(--hue);
+  --cs: 45%;
+  --cl: 32%;
+  /* Derivados del color de la portada (lomo, contraportada, cantos) */
+  --c-base: hsl(var(--ch) var(--cs) var(--cl));
+  --c-dark: hsl(var(--ch) var(--cs) calc(var(--cl) * 0.48));
+  --c-mid: hsl(var(--ch) var(--cs) calc(var(--cl) * 0.78));
+  --c-lite: hsl(var(--ch) calc(var(--cs) * 0.75) calc(var(--cl) + 40%));
+  transition: --ch 0.9s ease, --cs 0.9s ease, --cl 0.9s ease;
   position: relative;
   width: var(--w);
   height: var(--h);
@@ -63,7 +100,7 @@
   transform: translateZ(calc(var(--d) / 2));
   border-radius: 1px 3px 3px 1px;
   overflow: hidden;
-  background: hsl(var(--hue) 45% 28%);
+  background: var(--c-base);
 }
 .b3d-front img {
   width: 100%; height: 100%;
@@ -86,61 +123,93 @@
   position: absolute; inset: 0;
   display: flex; flex-direction: column; justify-content: space-between;
   padding: 14% 12% 12% 16%;
-  color: hsl(var(--hue) 40% 92%);
+  color: hsl(var(--ch) 40% 92%);
   background:
-    linear-gradient(160deg, hsl(var(--hue) 55% 34%), hsl(calc(var(--hue) + 30) 50% 16%));
+    linear-gradient(160deg, hsl(var(--ch) 55% 34%), hsl(calc(var(--ch) + 30) 50% 16%));
   font-family: var(--font-display);
   text-align: left;
 }
 .b3d-cover-gen::before {
   content: "";
   position: absolute; inset: 6% 7% 6% 11%;
-  border: 1px solid hsl(var(--hue) 50% 70% / 0.45);
+  border: 1px solid hsl(var(--ch) 50% 70% / 0.45);
   pointer-events: none;
 }
 .b3d-cover-gen .t { font-size: calc(var(--w) * 0.1); font-weight: 700; line-height: 1.15; overflow-wrap: anywhere; }
 .b3d-cover-gen .a { font-size: calc(var(--w) * 0.065); opacity: 0.8; }
 
-/* Contraportada */
+/* Contraportada: mismo color que la portada, con el hueco de la sinopsis y el código de barras */
 .b3d-back {
   inset: 0;
   transform: rotateY(180deg) translateZ(calc(var(--d) / 2));
-  background: linear-gradient(160deg, hsl(var(--hue) 40% 24%), hsl(var(--hue) 40% 14%));
+  background:
+    linear-gradient(90deg, rgba(0,0,0,.28) 0, rgba(255,255,255,.08) 3%, transparent 8%),
+    linear-gradient(160deg, var(--c-mid), var(--c-dark));
   border-radius: 3px 1px 1px 3px;
+  overflow: hidden;
+}
+.b3d-back::before {            /* líneas de texto de la sinopsis */
+  content: "";
+  position: absolute; left: 14%; right: 10%; top: 12%; height: 38%;
+  background: repeating-linear-gradient(to bottom, color-mix(in srgb, var(--c-lite) 38%, transparent) 0 2px, transparent 2px 9px);
+  -webkit-mask-image: linear-gradient(to bottom, #000 70%, transparent);
+  mask-image: linear-gradient(to bottom, #000 70%, transparent);
+}
+.b3d-back::after {             /* código de barras */
+  content: "";
+  position: absolute; right: 9%; bottom: 7%;
+  width: 34%; height: 11%;
+  background:
+    repeating-linear-gradient(90deg, #111 0 1px, transparent 1px 2px, #111 2px 4px, transparent 4px 5px) padding-box,
+    #f3f1ea;
+  border: 2px solid #f3f1ea;
+  border-radius: 1px;
 }
 
-/* Lomo (lado izquierdo) */
+/* Lomo (lado izquierdo): color de la portada, con las franjas doradas de un libro de verdad */
 .b3d-spine {
   width: var(--d);
   height: var(--h);
   left: calc(var(--w) / 2 - var(--d) / 2);
   transform: rotateY(-90deg) translateZ(calc(var(--w) / 2));
-  background: linear-gradient(90deg, hsl(var(--hue) 45% 16%), hsl(var(--hue) 45% 26%) 50%, hsl(var(--hue) 45% 16%));
+  background: linear-gradient(90deg, var(--c-dark), var(--c-mid) 50%, var(--c-dark));
   display: grid;
   place-items: center;
   overflow: hidden;
 }
+.b3d-spine::before,
+.b3d-spine::after {
+  content: "";
+  position: absolute; left: 0; right: 0;
+  height: 7%;
+  border-block: 1px solid color-mix(in srgb, var(--c-lite) 55%, transparent);
+  opacity: .8;
+}
+.b3d-spine::before { top: 4%; }
+.b3d-spine::after { bottom: 4%; }
 .b3d-spine span {
   writing-mode: vertical-rl;
   transform: rotate(180deg);
-  max-height: 88%;
+  max-height: 80%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   font-family: var(--font-display);
   font-size: clamp(7px, calc(var(--d) * 0.36), 13px);
-  color: hsl(var(--hue) 40% 88%);
+  color: var(--c-lite);
   letter-spacing: 0.04em;
 }
 
-/* Canto de las hojas (lado derecho) */
+/* Canto de las hojas (lado derecho): las tapas asoman por los bordes con el color de la portada */
 .b3d-pages {
   width: calc(var(--d) - 4px);
   height: calc(var(--h) - 6px);
   top: 3px;
   left: calc(var(--w) / 2 - var(--d) / 2 + 2px);
   transform: rotateY(90deg) translateZ(calc(var(--w) / 2 - 3px));
-  background: repeating-linear-gradient(90deg, var(--book-pages) 0 2px, var(--book-pages-line) 2px 3px);
+  background:
+    linear-gradient(90deg, var(--c-mid) 0 2px, transparent 2px calc(100% - 2px), var(--c-mid) calc(100% - 2px)),
+    repeating-linear-gradient(90deg, var(--book-pages) 0 2px, var(--book-pages-line) 2px 3px);
 }
 
 /* Canto superior e inferior */
@@ -150,7 +219,9 @@
   height: calc(var(--d) - 4px);
   left: 0;
   top: calc(var(--h) / 2 - var(--d) / 2 + 2px);
-  background: repeating-linear-gradient(0deg, var(--book-pages) 0 2px, var(--book-pages-line) 2px 3px);
+  background:
+    linear-gradient(0deg, var(--c-mid) 0 2px, transparent 2px calc(100% - 2px), var(--c-mid) calc(100% - 2px)),
+    repeating-linear-gradient(0deg, var(--book-pages) 0 2px, var(--book-pages-line) 2px 3px);
 }
 .b3d-top { transform: rotateX(90deg) translateZ(calc(var(--h) / 2 - 3px)); }
 .b3d-bottom { transform: rotateX(-90deg) translateZ(calc(var(--h) / 2 - 3px)); }
@@ -200,7 +271,7 @@
   --h: 144px;
   transform: rotateY(-32deg);
   transform-origin: 50% 100%;
-  transition: transform 0.35s cubic-bezier(.2,.8,.3,1);
+  transition: transform 0.35s cubic-bezier(.2,.8,.3,1), --ch 0.9s ease, --cs 0.9s ease, --cl 0.9s ease;
   filter: drop-shadow(4px 6px 6px var(--book-shadow));
 }
 .shelf-item:hover .b3d,

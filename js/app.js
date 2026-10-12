@@ -27,10 +27,16 @@
   }
 
   /** Nivel y barra de EXP de la cabecera. */
+  let playerShown = false;
+
   async function refreshPlayer() {
     const p = await progress();
     const pct = Math.round(p.progress * 100);
-    document.getElementById('ui-level').textContent = p.level;
+    const levelEl = document.getElementById('ui-level');
+    const levelUp = playerShown && Number(levelEl.textContent) < p.level;
+    levelEl.textContent = p.level;
+    if (levelUp) LK.fx.bump(levelEl);
+    playerShown = true;
     document.getElementById('ui-xpfill').style.width = `${pct}%`;
     const bar = document.getElementById('ui-xpbar');
     bar.setAttribute('aria-valuenow', pct);
@@ -42,9 +48,13 @@
     return { name: LK.views[name] ? name : 'biblioteca', params: params.map((p) => decodeURIComponent(p)) };
   }
 
+  let enterTimer = null;
+
   async function render() {
     const token = ++renderToken;
     const { name, params } = parseRoute();
+    const routeKey = `${name}/${params[0] || ''}`;
+    const isNewRoute = routeKey !== lastRoute; // al repintar la misma pantalla no se repiten las entradas
 
     const tab = TAB_OF[name] || name;
     document.querySelectorAll('.tabbar a').forEach((a) => {
@@ -55,7 +65,11 @@
     try {
       const { html, mount } = await LK.views[name](...params);
       if (token !== renderToken) return; // llegó otra navegación mientras cargaba
+      $view.classList.toggle('entering', isNewRoute);
       $view.innerHTML = html;
+      LK.fx.enter($view, isNewRoute);
+      clearTimeout(enterTimer);
+      if (isNewRoute) enterTimer = setTimeout(() => $view.classList.remove('entering'), 1800);
       await mount?.($view);
     } catch (err) {
       console.error(err);
@@ -64,8 +78,7 @@
     }
 
     // Al cambiar de pantalla, vuelve arriba; al refrescar la misma, conserva el scroll
-    const routeKey = `${name}/${params[0] || ''}`;
-    if (routeKey !== lastRoute) {
+    if (isNewRoute) {
       window.scrollTo(0, 0);
       $view.focus({ preventScroll: true });
     }

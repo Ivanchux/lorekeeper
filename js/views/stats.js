@@ -18,13 +18,21 @@
     const p = LK.rpg.compute(books, sessions);
     const year = new Date().getFullYear();
     const weeks = window.innerWidth >= 900 ? 44 : 26; // más semanas en pantallas anchas
-    const metric = LK.prefs.get('metric') === 'minutes' ? 'minutes' : 'pages';
+    const byId = new Map(books.map((b) => [b.id, b]));
+    const audioSessions = sessions.filter((s) => LK.audio.isAudioSession(s, byId));
+    const audioMinutes = audioSessions.reduce((a, s) => a + (s.durationMinutes || 0), 0);
 
     const completedThisYear = books.filter((b) => b.status === 'completed' && String(b.dateCompleted || '').startsWith(String(year))).length;
     const totalPages = sessions.reduce((a, s) => a + (s.pagesRead || 0), 0);
     const totalMinutes = sessions.reduce((a, s) => a + (s.durationMinutes || 0), 0);
-    const timedPages = sessions.filter((s) => s.durationMinutes > 0).reduce((a, s) => a + (s.pagesRead || 0), 0);
-    const pace = totalMinutes && timedPages ? Math.round((timedPages / totalMinutes) * 60) : 0;
+    // Quien escucha más de lo que lee ve el calendario en minutos, salvo que haya elegido otra cosa
+    const pref = LK.prefs.get('metric');
+    const metric = pref === 'pages' || pref === 'minutes' ? pref : audioMinutes > totalMinutes / 2 ? 'minutes' : 'pages';
+    // Ritmo de lectura: solo cuentan las sesiones con páginas (el audio no tiene páginas)
+    const paged = sessions.filter((s) => s.durationMinutes > 0 && s.pagesRead > 0);
+    const pagedMinutes = paged.reduce((a, s) => a + s.durationMinutes, 0);
+    const timedPages = paged.reduce((a, s) => a + s.pagesRead, 0);
+    const pace = pagedMinutes && timedPages ? Math.round((timedPages / pagedMinutes) * 60) : 0;
     const goal = profile.yearlyGoal || 0;
     const goalPct = goal ? Math.min(100, Math.round((completedThisYear / goal) * 100)) : 0;
     const streak = LK.ach.streak(sessions);
@@ -86,10 +94,11 @@
 
         <div class="tiles">
           ${tile(completedThisYear, `Libros leídos en ${year}`)}
-          ${tile(u.fmtNum(totalPages), 'Páginas leídas')}
-          ${tile(u.fmtDuration(totalMinutes), 'Tiempo leyendo')}
+          ${totalPages || !audioMinutes ? tile(u.fmtNum(totalPages), 'Páginas leídas') : ''}
+          ${totalMinutes - audioMinutes > 0 || !audioMinutes ? tile(u.fmtDuration(totalMinutes - audioMinutes), 'Tiempo leyendo') : ''}
+          ${audioMinutes ? tile(u.fmtDuration(audioMinutes), '🎧 Tiempo escuchando') : ''}
           ${tile(`${streak} ${streak === 1 ? 'día' : 'días'}`, 'Racha actual')}
-          ${tile(pace ? `${pace}` : '—', 'Páginas por hora')}
+          ${pace ? tile(`${pace}`, 'Páginas por hora') : ''}
           ${tile(avg ? `${avg} ★` : '—', 'Valoración media')}
         </div>
 

@@ -119,7 +119,9 @@
       const book = byId.get(s.bookId);
       if (!book) continue;
       // Audiolibros: sin páginas, cada 2 min escuchados cuentan como 1 página para los atributos
-      const eq = s.pagesRead || (book.format === 'audio' ? Math.round((s.durationMinutes || 0) / 2) : 0);
+      // Si hay posición (de/a), cuenta lo avanzado del libro; si no, el tiempo escuchado
+      const advanced = s.toMin != null && s.fromMin != null ? Math.max(0, s.toMin - s.fromMin) : s.durationMinutes || 0;
+      const eq = s.pagesRead || (book.format === 'audio' ? Math.round(advanced / 2) : 0);
       for (const stat of statsForBook(book)) pages[stat] += eq;
     }
     // Los libros importados de otra app no dan bonus (no los has terminado aquí)

@@ -69,7 +69,8 @@
       sm.bestMonth && ['📆', 'Tu mejor mes', `${sm.bestMonth.label} · ${u.fmtNum(sm.bestMonth.pages)} páginas`],
       sm.avgRating && ['⭐', 'Valoración media', `${sm.avgRating.toFixed(1).replace('.', ',')} sobre 5 (${sm.ratedCount} valorados)`],
       sm.pace && ['🏃', 'Tu ritmo', `${sm.pace} páginas por hora`],
-      sm.days && ['🗓', 'Días leyendo', `${sm.days} días`],
+      sm.audioMinutes && ['🎧', 'Audiolibros', `${u.fmtDuration(sm.audioMinutes)} escuchando`],
+      sm.days && ['🗓', sm.audioMinutes ? 'Días leyendo o escuchando' : 'Días leyendo', `${sm.days} días`],
       sm.topAttr && LK.prefs.get('rpg') && ['🧙', 'Atributo más entrenado', `${LK.rpg.statName(sm.topAttr.id)} (${sm.topAttr.count} libros)`],
     ].filter(Boolean);
 
@@ -86,7 +87,7 @@
             <div class="tiles">
               <div class="card tile"><div class="tile-value">${sm.finished}</div><div class="tile-label">libros</div></div>
               <div class="card tile"><div class="tile-value">${u.fmtNum(sm.pages)}</div><div class="tile-label">páginas</div></div>
-              <div class="card tile"><div class="tile-value">${sm.hours >= 1 ? Math.round(sm.hours) + ' h' : Math.round(sm.minutes) + ' min'}</div><div class="tile-label">leyendo</div></div>
+              <div class="card tile"><div class="tile-value">${sm.hours >= 1 ? Math.round(sm.hours) + ' h' : Math.round(sm.minutes) + ' min'}</div><div class="tile-label">${sm.audioMinutes ? 'leyendo y escuchando' : 'leyendo'}</div></div>
               <div class="card tile"><div class="tile-value">${sm.bestStreak}</div><div class="tile-label">mejor racha (días)</div></div>
             </div>
             <div class="row" style="margin-top:1rem">

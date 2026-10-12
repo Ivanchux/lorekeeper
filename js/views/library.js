@@ -108,7 +108,7 @@
 
     let cta;
     if (timer) cta = `<button class="btn btn-primary btn-lg" id="today-cta" data-mode="open">⏱ Volver a la sesión en marcha</button>`;
-    else if (current) cta = `<button class="btn btn-primary btn-lg" id="today-cta" data-mode="start" data-id="${u.esc(current.id)}">▶ Seguir leyendo<span class="cta-sub">${u.esc(current.title)}</span></button>`;
+    else if (current) cta = `<button class="btn btn-primary btn-lg" id="today-cta" data-mode="start" data-id="${u.esc(current.id)}">${LK.books.isAudio(current) ? '▶ Seguir escuchando' : '▶ Seguir leyendo'}<span class="cta-sub">${u.esc(current.title)}</span></button>`;
     else cta = `<a class="btn btn-primary btn-lg" href="#/buscar">＋ Añadir un libro para leer</a>`;
 
     const status = !goal.value
@@ -124,7 +124,7 @@
           <div class="today-text">
             <div class="today-kicker">Hoy</div>
             <div class="today-status">${status}</div>
-            <div class="muted small">${streak ? `🔥 ${streak} ${streak === 1 ? 'día' : 'días'} seguidos` : 'Lee un rato hoy para empezar una racha'}</div>
+            <div class="muted small">${streak ? `<span class="flame" aria-hidden="true">🔥</span> ${streak} ${streak === 1 ? 'día' : 'días'} seguidos` : 'Lee o escucha un rato hoy para empezar una racha'}</div>
           </div>
         </div>
         ${cta}
@@ -287,6 +287,7 @@
         });
 
         root.querySelectorAll('[data-start]').forEach((btn) => btn.addEventListener('click', async () => LK.timer.start(await LK.db.getBook(btn.dataset.start))));
+        root.querySelectorAll('[data-log]').forEach((btn) => btn.addEventListener('click', async () => LK.timer.logSession(await LK.db.getBook(btn.dataset.log))));
 
         const cta = root.querySelector('#today-cta');
         cta?.addEventListener('click', async () => {
@@ -337,7 +338,8 @@
                <div class="progress-label"><span>${pr.text}</span><span>${pr.pct}%</span></div>`
             : `<p class="muted small">${pr.text}</p>`}
           <div class="hero-actions">
-            <button class="btn btn-primary" data-start="${u.esc(book.id)}">▶ Empezar sesión</button>
+            <button class="btn btn-primary" data-start="${u.esc(book.id)}">${LK.books.isAudio(book) ? '▶ Empezar a escuchar' : '▶ Empezar sesión'}</button>
+            ${LK.books.isAudio(book) ? `<button class="btn" data-log="${u.esc(book.id)}">＋ Registrar escucha</button>` : ''}
             <a class="btn" href="#/libro/${encodeURIComponent(book.id)}">Ver ficha</a>
           </div>
         </div>

@@ -18,7 +18,7 @@
         <li class="row-between">
           <div>
             <div>${u.fmtDate(s.date)}</div>
-            <div class="muted small">${audio ? '' : `págs. ${s.startPage}–${s.endPage} · ${s.pagesRead} págs. · `}${u.fmtDuration(s.durationMinutes)}<span class="rpg-only"> · +${LK.rpg.sessionExp(s.pagesRead, s.durationMinutes)} EXP</span></div>
+            <div class="muted small">${audio ? LK.audio.sessionText(s) : `págs. ${s.startPage}–${s.endPage} · ${s.pagesRead} págs. · ${u.fmtDuration(s.durationMinutes)}`}<span class="rpg-only"> · +${LK.rpg.sessionExp(s.pagesRead, s.durationMinutes)} EXP</span></div>
           </div>
           <button class="btn btn-ghost btn-icon" data-del-session="${u.esc(s.id)}" aria-label="Borrar sesión del ${u.fmtDate(s.date)}" title="Borrar sesión">✕</button>
         </li>`
@@ -81,7 +81,9 @@
     const total = book.totalPages || 0;
     const read = book.readPages || 0;
     const pr = LK.books.progress(book, minutes);
-    const remaining = !audio && total && pace ? (Math.max(0, total - read) / pace) * 60 : audio && pr.total ? Math.max(0, pr.total - minutes) : 0;
+    const remaining = !audio && total && pace ? (Math.max(0, total - read) / pace) * 60 : audio && pr.total ? Math.max(0, pr.total - pr.done) : 0;
+    const listen = audio ? LK.audio.listenStats(sessions) : null;
+    const speed = audio ? book.speed || 1 : 1;
 
     const autoStats = LK.rpg.statsForGenres(book.genres);
     const statChips = LK.rpg.statsForBook(book).map((s) => `<span class="chip chip-accent rpg-only">${LK.rpg.statName(s)}</span>`).join('');
@@ -109,12 +111,23 @@
               ? `<div class="progress progress-lg"><span style="width:${pr.pct}%"></span></div>
                  <div class="progress-label"><span>${pr.text}</span><span>${pr.pct}%</span></div>`
               : `<p class="muted small">${pr.text}${audio ? ' · sin duración total' : ' · sin número total de páginas'}</p>`}
-            ${remaining && book.status === 'reading' ? `<p class="muted small">${audio ? `Te quedan unas ${u.fmtDuration(remaining)} de audio.` : `A tu ritmo (${pace} págs./h) te quedan unas ${u.fmtDuration(remaining)}.`}</p>` : ''}
+            ${remaining && book.status === 'reading'
+              ? `<p class="muted small">${audio
+                  ? `Te quedan ${u.fmtDuration(remaining)} de audio${speed !== 1 ? ` (unas ${u.fmtDuration(remaining / speed)} a ${LK.audio.fmtSpeed(speed)})` : ''}.`
+                  : `A tu ritmo (${pace} págs./h) te quedan unas ${u.fmtDuration(remaining)}.`}</p>`
+              : ''}
+            ${audio && listen.count
+              ? `<div class="chips audio-chips">
+                   <span class="chip">🎧 ${u.fmtDuration(listen.real)} escuchados</span>
+                   ${listen.content ? `<span class="chip">📚 ${u.fmtDuration(listen.content)} de libro</span>` : ''}
+                   ${listen.avgSpeed ? `<span class="chip">⚡ ${LK.audio.fmtSpeed(listen.avgSpeed)} de media</span>` : ''}
+                 </div>`
+              : ''}
           </div>
 
           <div class="row">
-            <button class="btn btn-primary btn-lg" id="btn-start">▶ Empezar sesión</button>
-            <button class="btn btn-lg" id="btn-log">+ Registrar sesión</button>
+            <button class="btn btn-primary btn-lg" id="btn-start">${audio ? '▶ Empezar a escuchar' : '▶ Empezar sesión'}</button>
+            <button class="btn btn-lg" id="btn-log">${audio ? '+ Registrar escucha' : '+ Registrar sesión'}</button>
           </div>
 
           <label class="field" style="max-width:240px">
@@ -185,7 +198,12 @@
           </label>
           <label class="field"><span>Páginas totales</span><input class="input" name="totalPages" type="number" min="0" value="${total}" inputmode="numeric"></label>
           <label class="field"><span>Página actual</span><input class="input" name="readPages" type="number" min="0" value="${read}" inputmode="numeric"></label>
-          <label class="field span-all"><span>Duración del audiolibro (minutos)</span><input class="input" name="totalMinutes" type="number" min="0" value="${book.totalMinutes || 0}" inputmode="numeric"></label>
+          <div class="span-all audio-edit">
+            <strong>Si es un audiolibro</strong>
+            ${LK.audio.timeField('totalMinutes', book.totalMinutes || 0, { label: 'Duración total', steps: [-30, 30] })}
+            ${LK.audio.timeField('listenPos', LK.audio.position(book, sessions), { label: 'Dónde vas ahora', hint: 'Corrígelo si tu app de audio marca otro punto.', steps: [-5, 5] })}
+            <div class="field"><span>Velocidad habitual</span>${LK.audio.speedPills(speed)}</div>
+          </div>
           <label class="field"><span>Saga o serie</span><input class="input" name="series" value="${u.esc(book.series || '')}" list="series-list" placeholder="Ej.: Los Juegos del Hambre"></label>
           <label class="field"><span>Nº en la saga</span><input class="input" name="seriesNo" type="number" step="any" min="0" value="${book.seriesNo ?? ''}" inputmode="decimal"></label>
           <label class="field span-all"><span>Etiquetas (separadas por comas)</span><input class="input" name="tags" value="${u.esc((book.tags || []).join(', '))}" placeholder="Regalo, Club de lectura, Viaje"></label>
@@ -392,10 +410,25 @@
           if (!btn) return;
           if (!(await u.confirm('¿Borrar esta sesión? Se descontará de tus estadísticas.', { ok: 'Borrar', danger: true }))) return;
           await LK.db.deleteSession(btn.dataset.delSession);
+          // Audiolibro: el «dónde vas» pasa a ser el punto final más avanzado de las sesiones que quedan
+          const fresh = await LK.db.getBook(id);
+          if (fresh && LK.books.isAudio(fresh) && fresh.listenPos != null) {
+            const rest = await LK.db.getSessionsByBook(id);
+            const ends = rest.filter((s) => s.toMin != null).map((s) => s.toMin);
+            await save({ listenPos: ends.length ? Math.max(...ends) : rest.length ? null : 0 });
+          }
           LK.app.refresh();
         });
 
         // Edición de datos
+        let editSpeed = book.speed || 1;
+        LK.audio.bindTimeFields(root.querySelector('#edit-form'));
+        root.querySelectorAll('#edit-form [data-speed]').forEach((b) =>
+          b.addEventListener('click', () => {
+            editSpeed = Number(b.dataset.speed);
+            root.querySelectorAll('#edit-form [data-speed]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+          })
+        );
         root.querySelector('#edit-form').addEventListener('submit', async (e) => {
           e.preventDefault();
           const f = e.target.elements;
@@ -411,7 +444,8 @@
             format: f.format.value,
             totalPages,
             readPages,
-            totalMinutes: parseInt(f.totalMinutes.value, 10) || 0,
+            totalMinutes: LK.audio.getTime(e.target, 'totalMinutes'),
+            ...(f.format.value === 'audio' ? { listenPos: LK.audio.getTime(e.target, 'listenPos'), speed: editSpeed } : {}),
             series: f.series.value.trim(),
             seriesNo: Number.isNaN(seriesNo) ? null : seriesNo,
             tags: LK.books.splitList(f.tags.value.replace(/#/g, '')),

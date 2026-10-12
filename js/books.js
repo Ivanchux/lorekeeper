@@ -35,14 +35,16 @@
    */
   function progress(book, listenedMin = 0) {
     if (isAudio(book)) {
+      // Se mide por el punto del audio en el que vas (listenPos); sin él, por el tiempo escuchado
       const total = book.totalMinutes || 0;
-      const done = listenedMin;
+      const hasPos = book.listenPos != null;
+      const done = hasPos ? book.listenPos : listenedMin;
       return {
         unit: 'time',
         done,
         total,
         pct: total ? u.clamp(Math.round((done / total) * 100), 0, 100) : 0,
-        text: total ? `${u.fmtDuration(done)} de ${u.fmtDuration(total)}` : `${u.fmtDuration(done)} escuchados`,
+        text: total ? `${u.fmtDuration(done)} de ${u.fmtDuration(total)}` : hasPos ? `Vas por ${u.fmtDuration(done)}` : `${u.fmtDuration(done)} escuchados`,
       };
     }
     const total = book.totalPages || 0;

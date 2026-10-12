@@ -10,7 +10,7 @@
    Sube CACHE_VERSION cada vez que cambies archivos de APP_SHELL.
    ========================================================== */
 
-const CACHE_VERSION = 'lk-v3';
+const CACHE_VERSION = 'lk-v4';
 const COVERS_CACHE = 'lk-covers';
 
 const APP_SHELL = [
@@ -21,11 +21,14 @@ const APP_SHELL = [
   './css/base.css',
   './css/book3d.css',
   './css/features.css',
+  './css/motion.css',
   './js/util.js',
   './js/prefs.js',
   './js/books.js',
   './js/storage.js',
   './js/rpg.js',
+  './js/audio.js',
+  './js/fx.js',
   './js/achievements.js',
   './js/summary.js',
   './js/theme.js',

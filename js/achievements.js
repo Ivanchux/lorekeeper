@@ -98,6 +98,27 @@
       },
     },
     {
+      id: 'listener-first',
+      icon: '🎧',
+      name: 'Con los cascos puestos',
+      desc: 'Termina un audiolibro',
+      f: (c) => count(c.finished.filter((b) => b.format === 'audio').length, 1),
+    },
+    {
+      id: 'listener-10',
+      icon: '👂',
+      name: 'Buen oído',
+      desc: 'Escucha 10 horas de audiolibro',
+      f: (c) => count(Math.floor(c.audioMinutes / 60), 10),
+    },
+    {
+      id: 'listener-50',
+      icon: '📻',
+      name: 'Oyente de fondo',
+      desc: 'Escucha 50 horas de audiolibro',
+      f: (c) => count(Math.floor(c.audioMinutes / 60), 50),
+    },
+    {
       id: 'lender',
       icon: '🤝',
       name: 'Biblioteca compartida',
@@ -130,6 +151,7 @@
       finished: books.filter((b) => b.status === 'completed'),
       pages: sessions.reduce((a, s) => a + (s.pagesRead || 0), 0),
       minutes: sessions.reduce((a, s) => a + (s.durationMinutes || 0), 0),
+      audioMinutes: sessions.filter((s) => LK.audio.isAudioSession(s, new Map(books.map((b) => [b.id, b])))).reduce((a, s) => a + (s.durationMinutes || 0), 0),
       best: longestStreak(sessions),
       progress: LK.rpg.compute(books, sessions),
     };

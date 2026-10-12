@@ -18,7 +18,8 @@
     onboarded: false,   // ya vio la pantalla de bienvenida
     remindAt: null,     // 'HH:MM' del recordatorio diario
     notifyTimer: false, // aviso persistente mientras lee
-    metric: 'pages',    // gráficas: 'pages' | 'minutes'
+    metric: 'auto',     // gráficas: 'auto' (minutos si se escucha más que se lee) | 'pages' | 'minutes'
+    motion: true,       // animaciones y efectos
     unit: 'pages',      // unidad al registrar sesión: 'pages' | 'percent'
   };
 
@@ -50,6 +51,7 @@
     root.style.setProperty('--font-scale', String(p.font));
     root.dataset.rpg = p.rpg ? 'on' : 'off';
     root.dataset.easy = p.easy ? 'on' : 'off';
+    root.dataset.motion = p.motion ? 'on' : 'off';
   }
 
   const get = (key) => load()[key];

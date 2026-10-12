@@ -155,6 +155,10 @@
               <div><strong>Niveles, atributos y logros de juego</strong><div class="muted small">Si lo desactivas, desaparece todo lo de «RPG» y queda un lector sencillo.</div></div>
               <label class="switch"><input type="checkbox" id="rpg" ${prefs.rpg ? 'checked' : ''} aria-label="Mostrar niveles y atributos"><span></span></label>
             </div>
+            <div class="row-between">
+              <div><strong>Animaciones</strong><div class="muted small">Movimiento y efectos: el libro que flota, las barras que se llenan, el confeti. Desactívalas si el móvil va justo o prefieres una app más quieta. Si tu móvil tiene «Reducir movimiento», se respeta siempre.</div></div>
+              <label class="switch"><input type="checkbox" id="motion" ${prefs.motion ? 'checked' : ''} aria-label="Animaciones"><span></span></label>
+            </div>
             <fieldset class="theme-grid">
               <legend class="sr-only">Elige el aspecto de la app</legend>
               ${themeOptions}
@@ -219,6 +223,10 @@
           LK.prefs.preset(e.target.checked ? 'easy' : 'full');
           LK.app.render();
           u.toast(e.target.checked ? 'Modo fácil activado' : 'Modo fácil desactivado');
+        });
+        root.querySelector('#motion').addEventListener('change', (e) => {
+          LK.prefs.set({ motion: e.target.checked });
+          if (e.target.checked) LK.fx.confetti({ count: 50, y: 0.6 });
         });
         root.querySelector('#rpg').addEventListener('change', (e) => {
           LK.prefs.set({ rpg: e.target.checked });
