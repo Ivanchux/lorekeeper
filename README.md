@@ -171,6 +171,23 @@ Rangos: Aprendiz (1) · Lector (3) · Escriba (5) · Erudito (8) · Archivista (
 
 **Try it:** https://ivanchux.github.io/lorekeeper/ · Install it from Safari (*Share → Add to Home Screen*) or Chrome (*Install app*).
 
-## 📄 Licencia
+## 📜 Licencia
 
-MIT © Iván Brihuega. Librerías de terceros en `js/vendor/THIRD_PARTY.md`.
+El código y los diseños están bajo [PolyForm Noncommercial 1.0.0](https://github.com/Ivanchux/lorekeeper/blob/main/LICENSE).
+
+**Puedes, sin pedir permiso:**
+
+* Usar la app y compartir el enlace.
+* Estudiar el código y modificarlo para uso personal, educativo o sin ánimo de lucro.
+* Subirla a tu propio hosting, siempre gratis y sin anuncios, conservando el aviso de copyright y la licencia.
+* Hacer vídeos, capturas y reseñas de la app, aunque tu canal esté monetizado.
+* Inspirarte en las ideas y el funcionamiento para crear tu propia app desde cero.
+
+**Necesitas mi permiso por escrito para:**
+
+* Vender la app, una copia o una versión modificada.
+* Publicarla en tiendas de aplicaciones.
+* Incluirla en una web con anuncios, suscripciones o compras.
+* Usar el código o los diseños (libro 3D, temas, iconos) en un producto comercial.
+
+LoreKeeper es una reinterpretación independiente de una idea que ya existe; no está afiliada a Bookmory ni a ninguna otra app de lectura. Las librerías de `js/vendor/` conservan su licencia original (ver `js/vendor/THIRD_PARTY.md`).
