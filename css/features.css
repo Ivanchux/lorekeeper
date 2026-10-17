@@ -281,3 +281,9 @@ dialog.modal.modal-wide { width: min(560px, calc(100% - 1.5rem)); }
 .tile-link { text-decoration: none; color: inherit; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 0.25rem; border-style: dashed; border-color: var(--accent); }
 .tile-link .tile-value { color: var(--accent); }
 .tile-link:active { transform: scale(0.97); }
+
+/* Copias automáticas (Ajustes) */
+.snapshots summary { cursor: pointer; padding: .35rem 0; }
+.snap-list { list-style: none; margin: .5rem 0 0; padding: 0; display: grid; gap: .5rem; }
+.snap-list li { gap: .75rem; padding: .5rem 0; border-top: 1px solid var(--line, rgba(127, 127, 127, .2)); }
+.boot-error p { margin: 0; }

@@ -81,9 +81,17 @@
     }
 
     // Instalar
-    if (!isStandalone() && !isDismissed('install') && books.length >= 1) {
-      if (LK.installPrompt) out.push({ id: 'install', icon: '📲', text: 'Instala LoreKeeper en tu móvil: se abre como una app, también sin conexión.', action: 'install', cta: 'Instalar', dismiss: true });
-      else if (isIOS() && location.protocol.startsWith('http')) out.push({ id: 'install', icon: '📲', text: 'En iPhone: toca Compartir y «Añadir a pantalla de inicio» para instalarla.', dismiss: true });
+    if (!isStandalone() && isIOS() && location.protocol.startsWith('http') && !isDismissed('ios-split')) {
+      // En iPhone, Safari y la app de la pantalla de inicio no comparten datos: si se mezclan, parece que se pierden
+      out.push({
+        id: 'ios-split',
+        icon: '📲',
+        cls: 'warn',
+        text: 'Estás en Safari. En iPhone, la app de la pantalla de inicio guarda sus datos aparte: lo que apuntes aquí no aparecerá allí. Elige una y usa siempre esa (para instalarla: Compartir → «Añadir a pantalla de inicio»).',
+        dismiss: true,
+      });
+    } else if (!isStandalone() && !isDismissed('install') && books.length >= 1 && LK.installPrompt) {
+      out.push({ id: 'install', icon: '📲', text: 'Instala LoreKeeper en tu móvil: se abre como una app, también sin conexión.', action: 'install', cta: 'Instalar', dismiss: true });
     }
     return out;
   }

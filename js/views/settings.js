@@ -75,6 +75,27 @@
     const canNotify = LK.timer.canNotify();
     const notifOn = canNotify && prefs.notifyTimer && Notification.permission === 'granted';
 
+    // Copias automáticas guardadas en el propio dispositivo
+    let snapshots = [];
+    try {
+      snapshots = await LK.db.listSnapshots();
+    } catch {}
+    const persisted = LK.db.persisted;
+    const persistHtml = persisted
+      ? '<p class="small" id="storage-persist">🔒 <strong>Almacenamiento protegido.</strong> El navegador no borrará tus datos para hacer sitio.</p>'
+      : `<p class="small" id="storage-persist">⚠️ <strong>Almacenamiento sin proteger.</strong> Si el dispositivo se queda sin espacio, el navegador podría borrar los datos de las webs que menos se usan. ${isIOS() && !isStandalone() ? 'En iPhone, instalada en la pantalla de inicio está mejor protegida. ' : ''}Haz copias de vez en cuando. <button class="btn btn-ghost btn-sm" id="btn-persist">Pedir protección</button></p>`;
+    const snapReason = (r) => u.esc(r || 'Copia automática');
+    const snapshotsHtml = snapshots.length
+      ? `<ul class="snap-list">${snapshots
+          .map(
+            (sn) => `<li class="row-between">
+              <span class="small"><strong>${u.esc(new Date(sn.createdAt).toLocaleString('es-ES', { dateStyle: 'medium', timeStyle: 'short' }))}</strong> · ${snapReason(sn.reason)}<br><span class="muted">${sn.books} libros, ${sn.sessions} sesiones</span></span>
+              <button class="btn btn-sm" data-snapshot="${u.esc(sn.id)}">Volver a esta</button>
+            </li>`
+          )
+          .join('')}</ul>`
+      : '<p class="muted small">Aún no hay ninguna. Se guarda una al día y otra antes de restaurar, borrar todo o aplicar borrados de otro dispositivo.</p>';
+
     let storageInfo = '';
     try {
       const est = await navigator.storage?.estimate?.();
@@ -189,7 +210,7 @@
 
           <section class="card stack-sm">
             <h2>Tus datos</h2>
-            <p class="muted small">Todo se guarda en este dispositivo (${u.esc(LK.db.adapterName())}${storageInfo}). Si borras los datos del navegador o desinstalas la app, se pierde. ${lastBackup ? `Última copia: ${u.ago(lastBackup)}.` : 'Aún no has hecho ninguna copia.'}</p>
+            <p class="muted small">Todo se guarda en este dispositivo (${u.esc(LK.db.adapterName())}${storageInfo}). Si borras los datos del navegador o desinstalas la app, se pierde.${isIOS() ? ' En iPhone, Safari y la app instalada en la pantalla de inicio guardan los datos por separado: usa siempre la misma.' : ''} ${lastBackup ? `Última copia: ${u.ago(lastBackup)}.` : 'Aún no has hecho ninguna copia.'}</p>
             <div class="row">
               <button class="btn btn-primary" id="btn-share">📤 Enviar copia (Drive, WhatsApp, correo…)</button>
               <button class="btn" id="btn-export">Descargar copia (JSON)</button>
@@ -202,6 +223,12 @@
               <button class="btn" id="btn-covers" hidden>🖼 Buscar portadas que faltan</button>
               <button class="btn btn-danger" id="btn-wipe">Borrar todo</button>
             </div>
+            ${persistHtml}
+            <details class="snapshots">
+              <summary><strong>Copias automáticas en este dispositivo</strong> (${snapshots.length})</summary>
+              <p class="muted small">Si algo sale mal (una copia equivocada, borrar sin querer…), puedes volver a cómo estaba. Antes de volver se guarda otra copia de lo que hay ahora.</p>
+              ${snapshotsHtml}
+            </details>
             <p class="muted small" id="covers-msg" aria-live="polite" hidden></p>
               <button class="btn btn-ghost" id="btn-covers-force" type="button">🔍 Diagnóstico de portadas</button>
           </section>
@@ -437,7 +464,7 @@
             const data = JSON.parse(await file.text());
             if (data?.app !== 'lorekeeper') throw new Error('El archivo no es una copia de LoreKeeper. Para Bookmory o Goodreads usa «Importar de Bookmory / Goodreads».');
             const sum = LK.db.summarize(data);
-            const ok = await u.confirm(`¿Restaurar esta copia (${sum.books} libros, ${sum.sessions} sesiones${sum.exportedAt ? `, del ${u.fmtDate(sum.exportedAt.slice(0, 10))}` : ''})? Sustituirá todo lo que tienes ahora.`, { ok: 'Restaurar', danger: true });
+            const ok = await u.confirm(`¿Restaurar esta copia (${sum.books} libros, ${sum.sessions} sesiones${sum.exportedAt ? `, del ${u.fmtDate(sum.exportedAt.slice(0, 10))}` : ''})? Sustituirá todo lo que tienes ahora; antes se guardará una copia automática por si quieres volver atrás.`, { ok: 'Restaurar', danger: true });
             if (!ok) return;
             await LK.db.importAll(data);
             u.toast('Copia restaurada');
@@ -447,8 +474,31 @@
           }
         });
 
+        root.querySelector('#btn-persist')?.addEventListener('click', async () => {
+          const ok = await LK.db.requestPersist();
+          u.toast(ok ? 'Almacenamiento protegido' : 'El navegador no lo ha permitido. Instalar la app suele ayudar.', ok ? '' : 'error');
+          if (ok) LK.app.refresh();
+        });
+
+        root.querySelectorAll('[data-snapshot]').forEach((btn) =>
+          btn.addEventListener('click', async () => {
+            const sn = snapshots.find((x) => x.id === btn.dataset.snapshot);
+            if (!sn) return;
+            const when = new Date(sn.createdAt).toLocaleString('es-ES', { dateStyle: 'medium', timeStyle: 'short' });
+            const ok = await u.confirm(`¿Volver a la copia del ${when} (${sn.books} libros, ${sn.sessions} sesiones)? Antes se guardará otra copia de lo que tienes ahora.`, { ok: 'Volver a esta copia' });
+            if (!ok) return;
+            try {
+              await LK.db.restoreSnapshot(sn.id);
+              u.toast('Copia recuperada');
+              LK.app.refresh();
+            } catch (err) {
+              u.toast(err.message, 'error');
+            }
+          })
+        );
+
         root.querySelector('#btn-wipe').addEventListener('click', async () => {
-          const ok = await u.confirm('¿Borrar todos tus libros, sesiones, citas y progreso? No se puede deshacer.', { ok: 'Borrar todo', danger: true });
+          const ok = await u.confirm('¿Borrar todos tus libros, sesiones, citas y progreso? Se guardará una copia automática en este dispositivo por si te arrepientes (Ajustes → Copias automáticas).', { ok: 'Borrar todo', danger: true });
           if (!ok) return;
           await LK.db.wipeAll();
           try {

@@ -103,38 +103,12 @@
 
   /* ---------------- Fusión ---------------- */
 
-  /** Fusiona dos copias completas. Gana el registro modificado más tarde. */
-  function merge(a, b) {
-    const tombstones = { ...(a.tombstones || {}) };
-    for (const [id, ts] of Object.entries(b.tombstones || {})) tombstones[id] = Math.max(tombstones[id] || 0, ts);
-
-    const union = (xs = [], ys = [], stamp) => {
-      const map = new Map();
-      for (const item of [...xs, ...ys]) {
-        const cur = map.get(item.id);
-        if (!cur || stamp(item) > stamp(cur)) map.set(item.id, item);
-      }
-      // Un borrado posterior a la última modificación gana
-      return [...map.values()].filter((item) => !(tombstones[item.id] && tombstones[item.id] >= stamp(item)));
-    };
-
-    const books = union(a.books, b.books, (x) => x.updatedAt || 0);
-    const alive = new Set(books.map((x) => x.id));
-    const sessions = union(a.sessions, b.sessions, (x) => x.createdAt || 0).filter((s) => alive.has(s.bookId));
-    const quotes = union(a.quotes, b.quotes, (x) => x.createdAt || 0).filter((q) => alive.has(q.bookId));
-
-    const pa = a.profile || {};
-    const pb = b.profile || {};
-    const newer = (pa.updatedAt || 0) >= (pb.updatedAt || 0) ? pa : pb;
-    const seen = pa.achSeen || pb.achSeen ? [...new Set([...(pa.achSeen || []), ...(pb.achSeen || [])])] : null;
-    const profile = { ...pb, ...pa, ...newer, achSeen: seen, id: 'profile' };
-
-    return { app: 'lorekeeper', schema: Math.max(a.schema || 0, b.schema || 0), exportedAt: new Date().toISOString(), profile, books, sessions, quotes, tombstones };
-  }
+  /** Fusiona dos copias completas (la lógica vive en LK.db para usarla también al recuperar datos). */
+  const merge = (a, b) => LK.db.mergeData(a, b);
 
   /** Huella para saber si dos copias son equivalentes. */
   function signature(d) {
-    const ids = (list, f) => (list || []).map((x) => `${x.id}:${f(x)}`).sort().join(',');
+    const ids = (list, f) => (list || []).map((x) => `${x.id}:${f(x)}:${x.restoredAt || 0}`).sort().join(',');
     return [
       ids(d.books, (x) => x.updatedAt || 0),
       ids(d.sessions, (x) => x.createdAt || 0),
@@ -187,7 +161,22 @@
 
   /* ---------------- Sincronizar ---------------- */
 
-  async function syncNow() {
+  /** Cada cuánto se descarga la copia entera aunque el número de versión no haya cambiado. */
+  const FULL_CHECK_MS = 6 * 3600 * 1000;
+
+  /** Comprueba que lo descifrado es una copia de LoreKeeper antes de tocar nada local. */
+  function validRemote(d) {
+    const ok = d && d.app === 'lorekeeper' && ['books', 'sessions', 'quotes'].every((k) => d[k] == null || Array.isArray(d[k]));
+    if (!ok) throw new Error('La copia del servidor no es válida. No se ha cambiado nada en este dispositivo.');
+    return d;
+  }
+
+  /**
+   * Sincroniza. opts.full descarga la copia del servidor aunque la versión coincida
+   * (en Cloudflare KV dos guardados simultáneos pueden dejar la misma versión con
+   * contenido distinto; se hace solo cada 6 horas).
+   */
+  async function syncNow(opts = {}) {
     if (!cfg) return;
     if (running) {
       again = true;
@@ -197,31 +186,29 @@
     setState('syncing');
     const startedAt = changeCounter;
     let changedLocal = false;
+    const full = !!opts.full || Date.now() - (cfg.lastFull || 0) > FULL_CHECK_MS;
     try {
       for (let attempt = 0; attempt < 4; attempt++) {
         const meta = await api('GET', '/api/vault?meta=1');
-        const local = await LK.db.exportAll();
+        if (meta.rev === cfg.rev && !cfg.dirty && !full) break; // ya estaba al día
 
-        if (meta.rev === cfg.rev && !cfg.dirty) break; // ya estaba al día
-
-        let target = local;
-        let remoteSig = null;
-        if (!meta.empty && meta.rev !== cfg.rev) {
+        let remote = null;
+        if (!meta.empty) {
           const rem = await api('GET', '/api/vault');
-          const remote = await decrypt(rem.data, cfg.code);
-          remoteSig = signature(remote);
-          target = merge(local, remote);
-        } else if (!meta.empty) {
-          const rem = await api('GET', '/api/vault');
-          remoteSig = signature(await decrypt(rem.data, cfg.code));
+          remote = validRemote(await decrypt(rem.data, cfg.code));
         }
 
-        if (signature(target) !== signature(local)) {
-          await LK.db.importAll(target, { silent: true });
-          changedLocal = true;
+        // La fusión se hace contra lo que hay AHORA en el dispositivo, en una sola transacción
+        let target;
+        if (remote) {
+          const res = await LK.db.applyRemote(remote);
+          target = res.merged;
+          changedLocal ||= res.changed;
+        } else {
+          target = await LK.db.exportAll();
         }
 
-        if (remoteSig !== null && remoteSig === signature(target)) {
+        if (remote && signature(remote) === signature(target)) {
           cfg.rev = meta.rev;
           if (changeCounter === startedAt) cfg.dirty = false;
           break; // el servidor ya tiene lo mismo
@@ -237,6 +224,7 @@
           throw e;
         }
       }
+      if (full) cfg.lastFull = Date.now();
       cfg.lastSync = Date.now();
       saveCfg();
       setState('idle');
@@ -340,6 +328,9 @@
     cleanUrl,
     info,
     isOn: () => !!cfg,
+    // Solo para las pruebas automáticas
+    _encryptForTest: (obj) => encrypt(obj, cfg.code),
+    _decryptForTest: (text) => decrypt(text, cfg.code),
     onStatus: (fn) => {
       listeners.add(fn);
       return () => listeners.delete(fn);

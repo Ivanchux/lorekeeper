@@ -79,6 +79,14 @@
     }
   });
 
+  // Otra pestaña o ventana de la app empezó, pausó o terminó la sesión
+  window.addEventListener('storage', (e) => {
+    if (e.key !== KEY) return;
+    if (!load() && overlay) minimize();
+    if (load()) ensureTicking();
+    tick();
+  });
+
   /* ---------- Aviso en la barra de notificaciones ---------- */
 
   const canNotify = () => 'Notification' in window && 'serviceWorker' in navigator && location.protocol.startsWith('http');
@@ -203,11 +211,7 @@
     const s = load();
     if (!s) return;
     const book = await LK.db.getBook(s.bookId);
-    if (!book) {
-      store(null);
-      updatePill();
-      return;
-    }
+    if (!book) return orphanSession(s);
     overlay?.remove();
     const src = await LK.db.coverSrc(book);
     const audio = LK.books.isAudio(book);
@@ -373,8 +377,8 @@
     }
     const book = await LK.db.getBook(s.bookId);
     minimize();
+    if (!book) return orphanSession(s);
     clearNotification();
-    if (!book) return store(null);
     const minutes = Math.max(1, Math.round(s.accMs / 60000));
     if (LK.books.isAudio(book)) {
       LK.audio.logForm(book, {
@@ -387,6 +391,23 @@
     } else {
       logSession(book, { startPage: s.startPage, minutes, fromTimer: true });
     }
+  }
+
+  /**
+   * El libro de la sesión no aparece (se borró en otro dispositivo, por ejemplo).
+   * La sesión NO se descarta sola: se pregunta, y si no se confirma sigue guardada.
+   */
+  async function orphanSession(s) {
+    updatePill();
+    const ok = await u.confirm(
+      `No encuentro «${s.title}» en tu biblioteca. La sesión (${u.fmtDuration(elapsed(s) / 60000)}) sigue guardada. ¿Quieres descartarla?`,
+      { ok: 'Descartar sesión', cancel: 'Guardarla de momento', danger: true }
+    );
+    if (!ok) return;
+    store(null);
+    stopTicking();
+    updatePill();
+    clearNotification();
   }
 
   /** Borra la sesión en marcha (cuando ya se ha guardado). */
