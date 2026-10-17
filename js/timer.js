@@ -44,6 +44,8 @@
       s ? localStorage.setItem(KEY, JSON.stringify(s)) : localStorage.removeItem(KEY);
     } catch {}
   };
+  /** ¿Usa esta persona el temporizador? (Ajustes → Temporizador) */
+  const enabled = () => LK.prefs.get('timer') !== false;
   const elapsed = (s) => s.accMs + (s.running ? Date.now() - s.startedAt : 0);
   /** Audio: lo avanzado del libro (ms) = tiempo real × velocidad, tramo a tramo. */
   const contentMs = (s) => (s.accContent || 0) + (s.running ? (Date.now() - s.startedAt) * (s.speed || 1) : 0);
@@ -73,7 +75,7 @@
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState !== 'visible') return;
     if (overlay) requestWake();
-    if (load()) {
+    if (enabled() && load()) {
       tick();
       checkForgotten();
     }
@@ -167,6 +169,8 @@
 
   /** Empieza (o retoma) una sesión con este libro. */
   async function start(book) {
+    // Sin temporizador: se apunta directamente lo leído o escuchado
+    if (!enabled()) return logSession(book);
     const current = load();
     if (current && current.bookId !== book.id) {
       const ok = await u.confirm(`Ya hay una sesión en marcha con «${current.title}». ¿Descartarla y empezar con este libro?`, {
@@ -430,7 +434,7 @@
   /** ¿Se ha dejado el reloj en marcha horas y horas? Pregunta una vez cada hora. */
   async function checkForgotten() {
     const s = load();
-    if (!s || !s.running || forgotOpen || Date.now() < snoozeUntil) return;
+    if (!enabled() || !s || !s.running || forgotOpen || Date.now() < snoozeUntil) return;
     const ms = elapsed(s);
     // Quien escucha audio mientras hace otras cosas puede estar horas: se le deja más margen
     if (ms < (s.audio ? FORGOT_AUDIO_MS : FORGOT_MS)) return;
@@ -457,7 +461,7 @@
   function updatePill() {
     const pill = document.getElementById('timer-pill');
     if (!pill) return;
-    const s = load();
+    const s = enabled() ? load() : null;
     pill.hidden = !s || !!overlay;
     if (s) {
       document.getElementById('timer-pill-time').textContent = u.fmtClock(elapsed(s));
@@ -469,7 +473,7 @@
   /** Al arrancar la app: si había una sesión en marcha, muestra la píldora. */
   function restore() {
     document.getElementById('timer-pill')?.addEventListener('click', open);
-    if (load()) {
+    if (enabled() && load()) {
       ensureTicking();
       tick();
     }
@@ -626,5 +630,34 @@
     });
   }
 
-  LK.timer = { start, open, restore, logSession, current: load, handleAction, enableNotifications, canNotify, clearState };
+  /**
+   * Activa o apaga el temporizador. Al apagarlo, si había una sesión en marcha, se pregunta
+   * si descartarla (no se borra sin confirmar). Devuelve false si la persona lo cancela.
+   */
+  async function setEnabled(on) {
+    const s = load();
+    if (!on && s) {
+      const ok = await u.confirm(
+        `Hay una sesión en marcha con «${s.title}» (${u.fmtDuration(elapsed(s) / 60000)}). Al quitar el temporizador se descarta. ¿Seguir?`,
+        { ok: 'Quitar y descartar', danger: true }
+      );
+      if (!ok) return false;
+      store(null);
+      minimize();
+      stopTicking();
+      clearNotification();
+    }
+    LK.prefs.set({ timer: !!on });
+    if (on && load()) ensureTicking();
+    updatePill();
+    return true;
+  }
+
+  /** Texto del botón de empezar, según se use o no el temporizador. */
+  const startLabel = (book, again = false) =>
+    enabled()
+      ? LK.books.isAudio(book) ? (again ? '▶ Seguir escuchando' : '▶ Empezar a escuchar') : again ? '▶ Seguir leyendo' : '▶ Empezar sesión'
+      : LK.books.isAudio(book) ? '＋ Apuntar lo escuchado' : '＋ Apuntar lo leído';
+
+  LK.timer = { start, open, restore, logSession, current: () => (enabled() ? load() : null), handleAction, enableNotifications, canNotify, clearState, setEnabled, enabled, startLabel };
 })(window.LK);

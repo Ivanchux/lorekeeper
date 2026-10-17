@@ -309,3 +309,34 @@ test('Los datos guardados por la versión anterior se abren igual y se hace la c
   await expect.poll(() => page.evaluate(async () => (await LK.db.listSnapshots()).map((s) => s.reason))).toEqual(['Copia diaria']);
   await expect(page.locator('#view')).toContainText('Drácula');
 });
+
+test('Quitar el temporizador: pide confirmar la sesión olvidada y «Empezar» apunta directamente', async ({ page }) => {
+  await open(page);
+  await seed(page, { books: 1, audioSessions: 0 });
+  // Una sesión olvidada de 66 h
+  await page.evaluate(() =>
+    localStorage.setItem('lk-timer', JSON.stringify({ bookId: 'b0', title: 'Libro 0', startPage: 0, startedAt: Date.now() - 66 * 3600000, accMs: 0, running: true, audio: true, startPos: 0, speed: 1, accContent: 0 }))
+  );
+  await open(page, '#/ajustes');
+  // Si se cancela, no se toca nada
+  await page.locator('#timer-on').click({ force: true });
+  await page.locator('dialog[open] [data-close]').click();
+  await expect(page.locator('#timer-on')).toBeChecked();
+  expect(await page.evaluate(() => !!localStorage.getItem('lk-timer'))).toBe(true);
+  // Confirmado: se quita y se descarta la sesión olvidada
+  await page.locator('#timer-on').click({ force: true });
+  await page.locator('dialog[open] [data-ok]').click();
+  await expect.poll(() => page.evaluate(() => localStorage.getItem('lk-timer'))).toBeNull();
+  await page.reload();
+  await waitReady(page);
+  await expect(page.locator('#timer-pill')).toBeHidden();
+  // «Empezar» abre el formulario y guarda la sesión, sin reloj
+  await open(page, '#/libro/b0');
+  await expect(page.locator('#btn-start')).toHaveText('＋ Apuntar lo escuchado');
+  await page.locator('#btn-start').click();
+  await expect(page.locator('.timer-overlay')).toHaveCount(0);
+  await page.locator('dialog[open] [name="minutes_h"]').fill('0');
+  await page.locator('dialog[open] [name="minutes_m"]').fill('25');
+  await page.locator('dialog[open] button[type="submit"]').click();
+  await expect.poll(() => counts(page)).toEqual({ books: 1, sessions: 1 });
+});

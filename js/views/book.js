@@ -126,7 +126,7 @@
           </div>
 
           <div class="row">
-            <button class="btn btn-primary btn-lg" id="btn-start">${audio ? '▶ Empezar a escuchar' : '▶ Empezar sesión'}</button>
+            <button class="btn btn-primary btn-lg" id="btn-start">${LK.timer.startLabel(book)}</button>
             <button class="btn btn-lg" id="btn-log">${audio ? '+ Registrar escucha' : '+ Registrar sesión'}</button>
           </div>
 

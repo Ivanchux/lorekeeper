@@ -178,6 +178,10 @@
               <label class="switch"><input type="checkbox" id="rpg" ${prefs.rpg ? 'checked' : ''} aria-label="Mostrar niveles y atributos"><span></span></label>
             </div>
             <div class="row-between">
+              <div><strong>Temporizador de sesiones</strong><div class="muted small">Un reloj que cuenta mientras lees o escuchas. Si no lo usas, apágalo: «Empezar» abrirá directamente el formulario para apuntar lo leído o escuchado.</div></div>
+              <label class="switch"><input type="checkbox" id="timer-on" ${prefs.timer !== false ? 'checked' : ''} aria-label="Temporizador de sesiones"><span></span></label>
+            </div>
+            <div class="row-between">
               <div><strong>Animaciones</strong><div class="muted small">Movimiento y efectos: el libro que flota, las barras que se llenan, el confeti. Desactívalas si el móvil va justo o prefieres una app más quieta. Si tu móvil tiene «Reducir movimiento», se respeta siempre.</div></div>
               <label class="switch"><input type="checkbox" id="motion" ${prefs.motion ? 'checked' : ''} aria-label="Animaciones"><span></span></label>
             </div>
@@ -258,6 +262,14 @@
         root.querySelector('#motion').addEventListener('change', (e) => {
           LK.prefs.set({ motion: e.target.checked });
           if (e.target.checked) LK.fx.confetti({ count: 50, y: 0.6 });
+        });
+        root.querySelector('#timer-on').addEventListener('change', async (e) => {
+          const on = e.target.checked;
+          if (!(await LK.timer.setEnabled(on))) {
+            e.target.checked = !on;
+            return;
+          }
+          u.toast(on ? 'Temporizador activado' : 'Temporizador quitado');
         });
         root.querySelector('#rpg').addEventListener('change', (e) => {
           LK.prefs.set({ rpg: e.target.checked });
