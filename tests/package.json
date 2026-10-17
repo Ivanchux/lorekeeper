@@ -1,0 +1,12 @@
+{
+  "name": "lorekeeper-tests",
+  "private": true,
+  "description": "Pruebas con navegador real (Playwright). Solo para desarrollo: la app no depende de nada de esto.",
+  "type": "module",
+  "scripts": {
+    "test": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.56.0"
+  }
+}

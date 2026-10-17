@@ -81,9 +81,17 @@
     }
 
     // Instalar
-    if (!isStandalone() && !isDismissed('install') && books.length >= 1) {
-      if (LK.installPrompt) out.push({ id: 'install', icon: '📲', text: 'Instala LoreKeeper en tu móvil: se abre como una app, también sin conexión.', action: 'install', cta: 'Instalar', dismiss: true });
-      else if (isIOS() && location.protocol.startsWith('http')) out.push({ id: 'install', icon: '📲', text: 'En iPhone: toca Compartir y «Añadir a pantalla de inicio» para instalarla.', dismiss: true });
+    if (!isStandalone() && isIOS() && location.protocol.startsWith('http') && !isDismissed('ios-split')) {
+      // En iPhone, Safari y la app de la pantalla de inicio no comparten datos: si se mezclan, parece que se pierden
+      out.push({
+        id: 'ios-split',
+        icon: '📲',
+        cls: 'warn',
+        text: 'Estás en Safari. En iPhone, la app de la pantalla de inicio guarda sus datos aparte: lo que apuntes aquí no aparecerá allí. Elige una y usa siempre esa (para instalarla: Compartir → «Añadir a pantalla de inicio»).',
+        dismiss: true,
+      });
+    } else if (!isStandalone() && !isDismissed('install') && books.length >= 1 && LK.installPrompt) {
+      out.push({ id: 'install', icon: '📲', text: 'Instala LoreKeeper en tu móvil: se abre como una app, también sin conexión.', action: 'install', cta: 'Instalar', dismiss: true });
     }
     return out;
   }
@@ -108,7 +116,7 @@
 
     let cta;
     if (timer) cta = `<button class="btn btn-primary btn-lg" id="today-cta" data-mode="open">⏱ Volver a la sesión en marcha</button>`;
-    else if (current) cta = `<button class="btn btn-primary btn-lg" id="today-cta" data-mode="start" data-id="${u.esc(current.id)}">${LK.books.isAudio(current) ? '▶ Seguir escuchando' : '▶ Seguir leyendo'}<span class="cta-sub">${u.esc(current.title)}</span></button>`;
+    else if (current) cta = `<button class="btn btn-primary btn-lg" id="today-cta" data-mode="start" data-id="${u.esc(current.id)}">${LK.timer.startLabel(current, true)}<span class="cta-sub">${u.esc(current.title)}</span></button>`;
     else cta = `<a class="btn btn-primary btn-lg" href="#/buscar">＋ Añadir un libro para leer</a>`;
 
     const status = !goal.value
@@ -369,8 +377,8 @@
                <div class="progress-label"><span>${pr.text}</span><span>${pr.pct}%</span></div>`
             : `<p class="muted small">${pr.text}</p>`}
           <div class="hero-actions">
-            <button class="btn btn-primary" data-start="${u.esc(book.id)}">${LK.books.isAudio(book) ? '▶ Empezar a escuchar' : '▶ Empezar sesión'}</button>
-            ${LK.books.isAudio(book) ? `<button class="btn" data-log="${u.esc(book.id)}">＋ Registrar escucha</button>` : ''}
+            <button class="btn btn-primary" data-start="${u.esc(book.id)}">${LK.timer.startLabel(book)}</button>
+            ${LK.books.isAudio(book) && LK.timer.enabled() ? `<button class="btn" data-log="${u.esc(book.id)}">＋ Registrar escucha</button>` : ''}
             <a class="btn" href="#/libro/${encodeURIComponent(book.id)}">Ver ficha</a>
           </div>
         </div>
