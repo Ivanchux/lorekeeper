@@ -18,6 +18,7 @@
     onboarded: false,   // ya vio la pantalla de bienvenida
     remindAt: null,     // 'HH:MM' del recordatorio diario
     notifyTimer: false, // aviso persistente mientras lee
+    timer: true,        // temporizador de sesiones; si está apagado, «Empezar» abre directamente el formulario para apuntar
     metric: 'auto',     // gráficas: 'auto' (minutos si se escucha más que se lee) | 'pages' | 'minutes'
     motion: true,       // animaciones y efectos
     unit: 'pages',      // unidad al registrar sesión: 'pages' | 'percent'

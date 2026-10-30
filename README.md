@@ -92,7 +92,9 @@ Tres oscuras (Terminal, Grimorio, Luciérnaga) y tres claras (Biblioteca, Minima
 
 ## 🔒 Tus datos
 
-- Todo se queda en tu dispositivo (IndexedDB, con respaldo en localStorage).
+- Todo se queda en tu dispositivo (IndexedDB; localStorage solo en navegadores sin IndexedDB). Si IndexedDB tarda o falla al abrir, la app reintenta y, si no lo consigue, avisa sin escribir nada.
+- Copias automáticas en el propio dispositivo: una al día y otra antes de restaurar, borrar todo o aplicar borrados de otro dispositivo. Se recuperan en Ajustes → Tus datos.
+- Pide almacenamiento persistente al navegador y muestra en Ajustes si lo ha concedido.
 - Copias: enviar por el menú del móvil (Drive, WhatsApp, correo), descargar JSON y restaurar.
 - Sincronización opcional y cifrada entre dispositivos con un servidor propio (`backend/`).
 - Recordatorio diario como evento de calendario (`.ics`) y aviso dentro de la app.
@@ -163,7 +165,9 @@ Rangos: Aprendiz (1) · Lector (3) · Escriba (5) · Erudito (8) · Archivista (
 
 ## 🧪 Pruebas
 
-`cd backend && npm test` prueba el servidor. La interfaz se ha probado con Playwright (Chromium): flujos, desbordes en móvil (320, 360 y 390 px, letra grande, los seis temas) y `file://`. Además se ha probado en iPhones reales.
+- `node backend/test.js` prueba el servidor de sincronización.
+- `cd tests && npm install && npx playwright test` prueba en un navegador real (Chromium) los casos de pérdida de datos: IndexedDB lenta, caída o que pierde la conexión, datos que quedaron en localStorage, sesión de audio en marcha, restaurar y borrar todo, dos pestañas, sincronización entre dos dispositivos (cambios a mitad, copias corruptas o vacías, versiones pisadas en Cloudflare KV) y el service worker.
+- En GitHub Actions las pruebas corren en cada pull request, y el despliegue a Pages solo se hace si pasan.
 
 ## 🌍 English summary
 

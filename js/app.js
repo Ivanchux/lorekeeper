@@ -148,11 +148,68 @@
 
   /* ---------------- Arranque ---------------- */
 
+  /** Marca el estado del arranque en <html data-lk-boot> (loading | ready | error). */
+  const bootState = (v) => (document.documentElement.dataset.lkBoot = v);
+
+  /** IndexedDB no ha abierto: se avisa y NO se pinta nada ni se guarda nada. */
+  function showBootError(err) {
+    bootState('error');
+    $view.innerHTML = `
+      <div class="error-box boot-error stack-sm" role="alert">
+        <strong>No se ha podido abrir tu biblioteca.</strong>
+        <p class="small">Tus libros y sesiones siguen guardados en este dispositivo; es el navegador el que no responde ahora mismo. No se ha cambiado nada.</p>
+        <p class="small">Prueba a cerrar la app del todo (deslízala hacia arriba en el selector de apps) y a abrirla de nuevo. Si tienes LoreKeeper abierta en otra pestaña o ventana, ciérrala.</p>
+        <div class="row"><button class="btn btn-primary" id="boot-retry">Volver a intentarlo</button></div>
+        <p class="muted small">Detalle: ${u.esc(err.cause?.message || err.message)}</p>
+      </div>`;
+    document.getElementById('boot-retry').addEventListener('click', () => location.reload());
+  }
+
+  /** Otra pestaña o ventana cambió datos: se repinta, salvo si aquí se está escribiendo algo. */
+  function listenOtherTabs() {
+    let pending = false;
+    const busy = () => document.querySelector('dialog[open], .timer-overlay') || document.activeElement?.matches?.('#view input, #view textarea, #view select');
+    const apply = () => {
+      if (document.visibilityState !== 'visible' || busy()) return (pending = true);
+      pending = false;
+      refresh();
+    };
+    const later = u.debounce(apply, 300);
+    LK.db.onExternalChange(() => {
+      window.__lkExternalChanges = (window.__lkExternalChanges || 0) + 1;
+      later();
+    });
+    document.addEventListener('visibilitychange', () => pending && apply());
+    window.addEventListener('hashchange', () => (pending = false));
+  }
+
   async function boot() {
+    bootState('loading');
     LK.prefs.apply();
     LK.theme.init();
-    await LK.db.init();
+    // Si IndexedDB tarda (Safari al volver a la app), se dice que se está abriendo en vez de mostrar la biblioteca vacía
+    const slow = setTimeout(() => {
+      $view.innerHTML = '<p class="empty" aria-live="polite">Abriendo tu biblioteca…</p>';
+    }, 1200);
+    LK.db.onBlocked = () => u.toast('Cierra las otras pestañas de LoreKeeper para terminar de abrirla.', 'error');
+    try {
+      await LK.db.init();
+    } catch (err) {
+      clearTimeout(slow);
+      if (err.boot) return showBootError(err);
+      throw err;
+    }
+    clearTimeout(slow);
+    // Datos que una versión anterior dejó en localStorage, y copia automática del día
+    try {
+      const recovered = await LK.db.recoverLocalStorage();
+      if (recovered) u.toast(`Se han recuperado ${recovered} registros que estaban guardados aparte.`);
+    } catch (err) {
+      console.error('No se pudieron recuperar los datos de localStorage', err);
+    }
+    LK.db.dailySnapshot().catch((err) => console.warn('Copia diaria no guardada', err));
     LK.sync.init();
+    listenOtherTabs();
 
     // Logros nuevos tras cualquier cambio (con calma, para no frenar el guardado)
     const checkAch = u.debounce(() => LK.ach.check().catch(() => {}), 800);
@@ -176,6 +233,8 @@
     checkYearRecap().catch(() => {});
     setInterval(() => checkYearRecap().catch(() => {}), 30000);
     document.addEventListener('visibilitychange', () => document.visibilityState === 'visible' && checkYearRecap().catch(() => {}));
+
+    bootState('ready');
 
     if (!LK.prefs.get('onboarded') && (await LK.db.isEmpty())) LK.onboarding.show();
     else if (!LK.prefs.get('onboarded')) LK.prefs.set({ onboarded: true });
@@ -203,6 +262,7 @@
 
   boot().catch((err) => {
     console.error(err);
+    bootState('error');
     $view.innerHTML = `<div class="error-box">No se pudo iniciar LoreKeeper: ${u.esc(err.message)}</div>`;
   });
 })(window.LK);

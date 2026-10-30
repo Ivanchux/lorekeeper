@@ -4,3 +4,5 @@ node_modules/
 node_modules/
 backend/data/
 .wrangler/
+tests/test-results/
+tests/playwright-report/

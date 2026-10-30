@@ -10,7 +10,7 @@
    Sube CACHE_VERSION cada vez que cambies archivos de APP_SHELL.
    ========================================================== */
 
-const CACHE_VERSION = 'lk-v12';
+const CACHE_VERSION = 'lk-v13';
 const COVERS_CACHE = 'lk-covers';
 
 const APP_SHELL = [
@@ -65,12 +65,13 @@ self.addEventListener('install', (event) => {
   self.skipWaiting();
 });
 
-// Borra cachés de versiones anteriores (las portadas se conservan)
+// Borra SOLO cachés antiguas de LoreKeeper (empiezan por «lk-»). En ivanchux.github.io
+// conviven otras apps con sus propias cachés y no se deben tocar. Las portadas se conservan.
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches
       .keys()
-      .then((keys) => Promise.all(keys.filter((k) => k !== CACHE_VERSION && k !== COVERS_CACHE).map((k) => caches.delete(k))))
+      .then((keys) => Promise.all(keys.filter((k) => k.startsWith('lk-') && k !== CACHE_VERSION && k !== COVERS_CACHE).map((k) => caches.delete(k))))
   );
   self.clients.claim();
 });
